@@ -20,12 +20,15 @@ Status: **experimental; Wrynose metadata path prepared, image not yet built**.
 - KAS manifest validation/dump: passed;
 - KAS checkout of all pinned repositories: passed;
 - proprietary source URLs and recipe checksums: inspected, not downloaded.
+- The central wrapper now prints and executes `bitbake -k neutrino-image`.
 
 ## Not yet verified
 
 - BitBake metadata parse: reached the BitBake host preflight but is blocked by
   missing host tools `python`, `sshpass`, `svn`, `chrpath`, `diffstat` and
   `gawk`; non-interactive sudo was unavailable;
+- Full-image attempt: command `bitbake -k neutrino-image` was invoked through
+  KAS and exited 1 before task execution for the same host-tool blocker.
 - proprietary driver fetch/license acceptance: not performed;
 - kernel, Neutrino cross-compilation and image creation: not performed;
 - hardware boot, OSD, DVB lock, audio/video and recovery: not performed.

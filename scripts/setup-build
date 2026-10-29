@@ -30,4 +30,9 @@ export KAS_BUILD_DIR="$build_dir"
 export KAS_WORK_DIR="$source_dir"
 kas_config="$repo/kas/wrynose.yml"
 [[ "$machine" == hd51 ]] && kas_config="$repo/kas/hd51-wrynose.yml"
-exec kas build --target neutrino-image "$kas_config"
+target="${NEUTRINO_BUILD_TARGET:-neutrino-image}"
+case "$target" in
+  (*[!A-Za-z0-9_+.-]*) die "invalid BitBake target: $target" ;;
+esac
+printf 'BitBake command: bitbake -k %s\n' "$target"
+exec kas shell "$kas_config" -c "bitbake -k $target"

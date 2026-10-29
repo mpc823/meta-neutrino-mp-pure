@@ -2,8 +2,8 @@ SUMMARY = "Port of neutrino to multiple platforms, including (but not limited to
 DESCRIPTION = "Port of neutrino to multiple platforms."
 HOMEPAGE = "https://github.com/neutrino-mp"
 SECTION = "libs"
-LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://${WORKDIR}/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe \
+LICENSE = "GPL-2.0-only"
+LIC_FILES_CHKSUM = "file://${UNPACKDIR}/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe \
 "
 
 # even if I'd like it to be otherwise, right now neutrino is machine specific, not CPU specific
@@ -12,6 +12,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 PREFERRED_PROVIDER_virtual/stb-hal-libs ?= "libstb-hal"
 
 DEPENDS += " \
+	update-rc.d-native \
 	virtual/stb-hal-libs \
 	curl \
 	freetype \
@@ -67,9 +68,16 @@ SRC_URI = " \
 	file://custom-poweroff.init \
 	file://mount.mdev \
 	file://COPYING.GPL \
+	file://0001-timerdclient-include-time-header.patch \
+	file://0002-tuxtxt-include-pthread-header.patch \
+	file://0003-dvbsubtitle-include-pthread-header.patch \
+	file://0004-rcinput-support-time64-input-event.patch \
+	file://0005-helpers-fix-ramfs-case-type.patch \
+	file://0006-eitd-make-set-comparators-const.patch \
+	file://0007-eitd-include-ctime.patch \
+	file://0008-controlapi-use-time-t-for-stop-time.patch \
+	file://0009-configure-do-not-embed-build-paths.patch \
 "
-
-S = "${UNPACKDIR}/git"
 
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
@@ -87,6 +95,8 @@ do_configure:prepend() {
 }
 
 do_compile () {
+	oe_runmake clean
+	oe_runconf
 	PKG_VER="$(sed -n '/^#define PACKAGE_VERSION/s/#define PACKAGE_VERSION //p' config.h)"
 	if test $PKG_VER != '"${N_MAJOR}.${N_MINOR}.${N_MICRO}"'; then
 		bbwarn "Package version $PKG_VER not consistent with neutrino_mp.bb"
@@ -98,11 +108,11 @@ do_compile () {
 
 do_install:prepend () {
 	install -d ${D}/${sysconfdir}/init.d
-	install -m 755 ${WORKDIR}/neutrino.init ${D}/${sysconfdir}/init.d/neutrino
-	install -m 755 ${WORKDIR}/custom-poweroff.init ${D}/${sysconfdir}/init.d/custom-poweroff
-	install -m 644 ${WORKDIR}/timezone.xml ${D}/${sysconfdir}/timezone.xml
+	install -m 755 ${UNPACKDIR}/neutrino.init ${D}/${sysconfdir}/init.d/neutrino
+	install -m 755 ${UNPACKDIR}/custom-poweroff.init ${D}/${sysconfdir}/init.d/custom-poweroff
+	install -m 644 ${UNPACKDIR}/timezone.xml ${D}/${sysconfdir}/timezone.xml
 	install -d ${D}/lib/mdev/fs
-	install -m 755 ${WORKDIR}/mount.mdev ${D}/lib/mdev/fs/mount
+	install -m 755 ${UNPACKDIR}/mount.mdev ${D}/lib/mdev/fs/mount
 	install -d ${D}/var/cache
 	install -d ${D}/var/tuxbox/config/
 	install -d ${D}/var/tuxbox/plugins/

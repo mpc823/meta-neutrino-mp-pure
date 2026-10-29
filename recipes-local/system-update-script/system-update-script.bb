@@ -16,6 +16,6 @@ S = "${UNPACKDIR}"
 
 do_install () {
 	install -d ${D}${bindir}/
-	install -m 0755 ${WORKDIR}/system-update-opkg.sh ${D}${bindir}/
+	install -m 0755 ${UNPACKDIR}/system-update-opkg.sh ${D}${bindir}/
 	ln -s system-update-opkg.sh ${D}${bindir}/system-update
 }

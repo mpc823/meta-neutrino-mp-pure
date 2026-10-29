@@ -8,7 +8,7 @@ SRC_URI = "https://download.gnome.org/sources/mm-common/0.9/mm-common-${PV}.tar.
 SRC_URI[archive.md5sum] = "3b23749ab39441c392c016ce74632678"
 SRC_URI[archive.sha256sum] = "7c37158a1f37604705a9b9305d3b335fb8256f5de701c8801269dde4e2ce7dde"
 
-LICENSE = "GPLv2"
+LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=751419260aa954499f7abaabaa882bbe"
 
 BBCLASSEXTEND = "native"

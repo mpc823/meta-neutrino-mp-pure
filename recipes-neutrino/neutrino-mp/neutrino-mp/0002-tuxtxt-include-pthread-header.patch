@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 10:53:00 +0100
+Subject: [PATCH] tuxtxt: include pthread declarations
+
+Include the POSIX thread declarations used by the teletext worker thread.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ lib/libtuxtxt/tuxtxt.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/libtuxtxt/tuxtxt.cpp b/lib/libtuxtxt/tuxtxt.cpp
+index 1111111..2222222 100644
+--- a/lib/libtuxtxt/tuxtxt.cpp
++++ b/lib/libtuxtxt/tuxtxt.cpp
+@@ -18,2 +18,3 @@
+ #include "teletext.h"
++#include <pthread.h>
+ #include "tuxtxt.h"

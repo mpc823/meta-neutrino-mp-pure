@@ -5,7 +5,7 @@
 ####
 #### spark stuff is totally untested
 ####
-LICENSE = "GPLv2+"
+LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://${THISDIR}/libstb-hal/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
 
 # hack: make sure we do not try to build on coolstream

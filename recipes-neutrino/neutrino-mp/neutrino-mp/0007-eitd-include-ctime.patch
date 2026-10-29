@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:38:00 +0100
+Subject: [PATCH] eitd: include ctime declarations
+
+Include the standard declaration of ctime used by the EIT event and section
+code.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ src/eitd/SIevents.hpp   | 1 +
+ src/eitd/SIsections.cpp | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/src/eitd/SIevents.hpp b/src/eitd/SIevents.hpp
+index 1111111..2222222 100644
+--- a/src/eitd/SIevents.hpp
++++ b/src/eitd/SIevents.hpp
+@@ -28,0 +29 @@
++#include <ctime>
+diff --git a/src/eitd/SIsections.cpp b/src/eitd/SIsections.cpp
+index 3333333..4444444 100644
+--- a/src/eitd/SIsections.cpp
++++ b/src/eitd/SIsections.cpp
+@@ -27,2 +27,3 @@
+ #include <stdio.h>
++#include <ctime>
+ #include <unistd.h>

@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:28:00 +0100
+Subject: [PATCH] eitd: make set comparators const-callable
+
+Modern libstdc++ requires ordered-container comparison objects to be
+invocable through a const comparator instance.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ src/eitd/eitd.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/eitd/eitd.h b/src/eitd/eitd.h
+index 1111111..2222222 100644
+--- a/src/eitd/eitd.h
++++ b/src/eitd/eitd.h
+@@ -68,1 +68,1 @@
+-	bool operator()(const SIeventPtr &p1, const SIeventPtr &p2)
++	bool operator()(const SIeventPtr &p1, const SIeventPtr &p2) const
+@@ -80,1 +80,1 @@
+-	bool operator()(const SIeventPtr &p1, const SIeventPtr &p2)
++	bool operator()(const SIeventPtr &p1, const SIeventPtr &p2) const

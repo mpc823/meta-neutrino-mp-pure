@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 12:00:00 +0100
+Subject: [PATCH] raspi: implement GetVideoSystem
+
+Provide the video-system query declared by the common HAL interface. The
+Raspberry Pi backend currently uses the existing 720p50 default mode.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ raspi/video.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/raspi/video.cpp b/raspi/video.cpp
+index 1111111..2222222 100644
+--- a/raspi/video.cpp
++++ b/raspi/video.cpp
+@@ -83,0 +84,5 @@
++int cVideo::GetVideoSystem(void)
++{
++	return VIDEO_STD_720P50;
++}
++

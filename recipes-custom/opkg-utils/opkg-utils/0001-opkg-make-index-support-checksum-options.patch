@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Wed, 29 Oct 2026 12:45:00 +0100
+Subject: [PATCH] opkg-make-index: support modern checksum options
+
+OpenEmbedded invokes opkg-make-index with repeated --checksum options.
+The historical fork predates that interface and aborts before generating
+the package index. Backport the interface and SHA256 support.
+
+Upstream-Status: Inappropriate [fork compatibility]
+---
+ opkg-make-index | 8 +++++++-
+ opkg.py         | 22 ++++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/opkg-make-index b/opkg-make-index
+--- a/opkg-make-index
++++ b/opkg-make-index
+@@ -46 +46,2 @@
+-(opts, remaining_args) = getopt.getopt(sys.argv[1:], "hl:p:vsmr:L:a")
++checksum = ['md5']
++(opts, remaining_args) = getopt.getopt(sys.argv[1:], "hl:p:vsmr:L:a", ["checksum="])
+@@ -66 +66,3 @@
+-          opt_a = 1
++          opt_a = 1
++     if optkey == '--checksum':
++          checksum.append(optval)
+@@ -125 +125,2 @@
+-          pkg = opkg.Package(abspath, relpath=pkg_dir)
++          pkg = opkg.Package(abspath, relpath=pkg_dir)
++     opkg.CHECKSUM = checksum
+ 
+diff --git a/opkg.py b/opkg.py
+--- a/opkg.py
++++ b/opkg.py
+@@ -47,0 +48 @@
++CHECKSUM = ['md5']
+@@ -188,1 +188,4 @@
+-        elif name == 'size':
++        elif name == "sha256":
++            self._computeFileSHA256()
++            return self.sha256
++        elif name == 'size':
+@@ -206,0 +206,14 @@
++    def _computeFileSHA256(self):
++        # compute the SHA256.
++        if not self.fn:
++            self.sha256 = 'Unknown'
++        else:
++            f = open(self.fn, "rb")
++            sum = hashlib.sha256()
++            while True:
++               data = f.read(1024)
++               if not data: break
++               sum.update(data)
++            f.close()
++            self.sha256 = sum.hexdigest()
++
+@@ -474 +475,2 @@
+-        if self.md5: out = out + "MD5Sum: %s\n" % (self.md5)
++        if self.md5: out = out + "MD5Sum: %s\n" % (self.md5)
++        if 'sha256' in CHECKSUM: out = out + "SHA256sum: %s\n" % (self.sha256)

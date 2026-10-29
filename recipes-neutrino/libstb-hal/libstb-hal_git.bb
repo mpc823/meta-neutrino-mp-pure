@@ -6,7 +6,7 @@ SUMMARY = "Library to abstract STB hardware. Supports Tripledragon, AZbox ME, Fu
 DESCRIPTION = "Library to abstract STB hardware."
 HOMEPAGE = "https://github.com/neutrino-mp"
 SECTION = "libs"
-LICENSE = "GPLv2+"
+LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://${THISDIR}/libstb-hal/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
 
 # hack: make sure we do not try to build on coolstream
@@ -47,6 +47,7 @@ SRC_URI = " \
 	file://blank_480.mpg \
 	file://blank_576.mpg \
 	file://timer-wakeup.init \
+	file://0001-raspi-implement-get-video-system.patch \
 "
 
 # the build system is not really broken wrt separate builddir,
@@ -69,6 +70,8 @@ EXTRA_OECONF += "\
 EXTRA_OECONF:append:spark = "--with-boxtype=spark"
 EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
 EXTRA_OECONF:append:raspberrypi2 = "--with-boxtype=generic --with-boxmodel=raspi"
+EXTRA_OECONF:append:raspberrypi = " --disable-clutter"
+EXTRA_OECONF:append:raspberrypi2 = " --disable-clutter"
 EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
 
 do_configure:prepend() {

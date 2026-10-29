@@ -39,7 +39,7 @@ PACKAGECONFIG[libsolv] = "--with-libsolv,--without-libsolv,libsolv"
 
 do_install:append () {
 	install -d ${D}${sysconfdir}/opkg
-	install -m 0644 ${WORKDIR}/opkg.conf ${D}${sysconfdir}/opkg/opkg.conf
+	install -m 0644 ${UNPACKDIR}/opkg.conf ${D}${sysconfdir}/opkg/opkg.conf
 	echo "option lists_dir ${OPKGLIBDIR}/opkg/lists" >>${D}${sysconfdir}/opkg/opkg.conf
 
 	# We need to create the lock directory
@@ -47,7 +47,7 @@ do_install:append () {
 
 	if ${@bb.utils.contains('DISTRO_FEATURES','systemd','true','false',d)};then
 		install -d ${D}${systemd_unitdir}/system
-		install -m 0644 ${WORKDIR}/opkg-configure.service ${D}${systemd_unitdir}/system/
+		install -m 0644 ${UNPACKDIR}/opkg-configure.service ${D}${systemd_unitdir}/system/
 		sed -i -e 's,@BASE_BINDIR@,${base_bindir},g' \
 			-e 's,@SYSCONFDIR@,${sysconfdir},g' \
 			-e 's,@BINDIR@,${bindir},g' \

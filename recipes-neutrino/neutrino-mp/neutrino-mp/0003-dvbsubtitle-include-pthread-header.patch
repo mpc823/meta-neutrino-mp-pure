@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:08:00 +0100
+Subject: [PATCH] dvbsubtitle: include pthread declarations
+
+Include the POSIX mutex declarations used by the DVB subtitle converter.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ lib/libdvbsub/dvbsubtitle.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/libdvbsub/dvbsubtitle.cpp b/lib/libdvbsub/dvbsubtitle.cpp
+index 1111111..2222222 100644
+--- a/lib/libdvbsub/dvbsubtitle.cpp
++++ b/lib/libdvbsub/dvbsubtitle.cpp
+@@ -15,2 +15,3 @@
+ #include "dvbsubtitle.h"
++#include <pthread.h>
+ 

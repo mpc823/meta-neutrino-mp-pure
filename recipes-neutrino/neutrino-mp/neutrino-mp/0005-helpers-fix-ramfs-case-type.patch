@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:20:00 +0100
+Subject: [PATCH] helpers: keep ramfs magic compatible with 32-bit switch
+
+The historical ramfs magic value does not fit in a signed int literal on
+modern compilers. Preserve the value while matching the type of statfs.f_type.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ src/system/helpers.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/system/helpers.cpp b/src/system/helpers.cpp
+index 1111111..2222222 100644
+--- a/src/system/helpers.cpp
++++ b/src/system/helpers.cpp
+@@ -302,1 +302,1 @@
+-			case 0x858458f6L: 	// ramfs
++			case (int)0x858458f6U: 	// ramfs

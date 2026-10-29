@@ -1,0 +1,17 @@
+Subject: [PATCH] configure: avoid embedding build paths in build information
+
+The generated build-information dialog only needs to identify the build
+flags. Embedding the complete CXXFLAGS also embeds the temporary Yocto work
+directory and makes the installed binary fail the buildpaths QA check.
+
+Upstream-Status: Inappropriate [OE-specific reproducibility fix]
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+--- a/configure.ac
++++ b/configure.ac
+@@ -24 +24 @@
+-#define USED_CXXFLAGS "$CXXFLAGS"
++#define USED_CXXFLAGS "Yocto target build flags"

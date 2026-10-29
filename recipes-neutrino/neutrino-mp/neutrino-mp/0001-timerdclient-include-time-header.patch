@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 10:51:00 +0100
+Subject: [PATCH] timerdclient: include time declaration
+
+Modern C++ toolchains no longer provide the declaration of time() through
+unrelated headers. Include the standard C time header explicitly.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ lib/timerdclient/timerdclient.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/timerdclient/timerdclient.cpp b/lib/timerdclient/timerdclient.cpp
+index 1111111..2222222 100644
+--- a/lib/timerdclient/timerdclient.cpp
++++ b/lib/timerdclient/timerdclient.cpp
+@@ -25,2 +25,3 @@
+ #include <string.h>
++#include <time.h>
+ 

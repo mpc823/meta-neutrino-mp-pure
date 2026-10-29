@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:12:00 +0100
+Subject: [PATCH] rcinput: support time64 input_event layout
+
+Linux input headers use the time64-compatible seconds and microseconds
+fields when _TIME_BITS=64 is enabled on 32-bit targets.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ src/driver/rcinput.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/driver/rcinput.cpp b/src/driver/rcinput.cpp
+index 1111111..2222222 100644
+--- a/src/driver/rcinput.cpp
++++ b/src/driver/rcinput.cpp
+@@ -1338,1 +1338,5 @@
+-				now_pressed = ev.time.tv_usec + ev.time.tv_sec * 1000000ULL;
++#if defined(__USE_TIME_BITS64) && (__BITS_PER_LONG == 32)
++				now_pressed = ev.__usec + ev.__sec * 1000000ULL;
++#else
++				now_pressed = ev.time.tv_usec + ev.time.tv_sec * 1000000ULL;
++#endif

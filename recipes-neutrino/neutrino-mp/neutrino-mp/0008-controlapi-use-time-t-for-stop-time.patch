@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 11:48:00 +0100
+Subject: [PATCH] controlapi: use time_t for localtime arguments
+
+Use the platform time_t type for temporary stop times passed to localtime,
+including 32-bit builds using the time64 ABI.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ src/nhttpd/tuxboxapi/controlapi.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/nhttpd/tuxboxapi/controlapi.cpp b/src/nhttpd/tuxboxapi/controlapi.cpp
+index 1111111..2222222 100644
+--- a/src/nhttpd/tuxboxapi/controlapi.cpp
++++ b/src/nhttpd/tuxboxapi/controlapi.cpp
+@@ -1629,1 +1629,1 @@
+-		long _stoptime = eventIterator->startTime + eventIterator->duration;
++		time_t _stoptime = eventIterator->startTime + eventIterator->duration;
+@@ -3209,1 +3209,1 @@
+-						long _stoptime = eventIterator->startTime + eventIterator->duration;
++						time_t _stoptime = eventIterator->startTime + eventIterator->duration;

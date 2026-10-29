@@ -5,6 +5,7 @@ set -Eeuo pipefail
 # second build, and stops after three retries without measurable progress.
 
 machine="${2:-raspberrypi2}"
+build_target="${NEUTRINO_BUILD_TARGET:-neutrino-image}"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_root="$(readlink -f "${NEUTRINO_BUILD_ROOT:-${repo}/../.neutrino-build}")"
 monitor_dir="${build_root}/monitor/${machine}"
@@ -96,7 +97,7 @@ health_check() {
     local log="$1" age total_kb used_kb avail_kb mem_total mem_avail swap_total swap_avail
     health="OK"; health_reason=""
     if [[ "${NEUTRINO_WATCHDOG_TEST_MODE:-0}" != "1" ]]; then
-		bitbake_count="$(ps -eo args= | awk '/[b]itbake/ && /neutrino-image/ && !/[b]itbake-server/ {n++} END {print n+0}')"
+        bitbake_count="$(ps -eo args= | awk -v target="$build_target" '/[b]itbake/ && !/[b]itbake-server/ && index($0, target) {n++} END {print n+0}')"
 		server_count="$(ps -eo args= | awk '/[b]itbake-server/ {n++} END {print n+0}')"
         if (( bitbake_count > 1 )); then
             health="BLOCKED"; health_reason="mehr als eine BitBake-neutrino-image-Instanz"
@@ -192,7 +193,7 @@ start_or_attach_wrapper() {
 }
 
 existing_target_running() {
-	ps -eo args= | awk '/[b]itbake/ && /neutrino-image/ && !/[b]itbake-server/ {found=1} END {exit !found}'
+	ps -eo args= | awk -v target="$build_target" '/[b]itbake/ && !/[b]itbake-server/ && index($0, target) {found=1} END {exit !found}'
 }
 
 existing_progress() {

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+default_hal="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/libstb-hal/0.1+git/sources/libstb-hal-0.1+git"
+hal_source="${NEUTRINO_LIBSTB_HAL_SOURCE:-$default_hal}"
+cc_bin="${CC:-cc}"
+cxx_bin="${CXX:-c++}"
+out_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-native-x86.XXXXXX")"
+trap 'rm -rf "$out_dir"' EXIT HUP INT TERM
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+[[ -d "$hal_source/include" ]] || die "libstb-hal-Quellen fehlen: $hal_source"
+command -v "$cc_bin" >/dev/null || die "C-Compiler fehlt: $cc_bin"
+command -v "$cxx_bin" >/dev/null || die "C++-Compiler fehlt: $cxx_bin"
+
+common_flags=(-Wall -Wextra -Werror -I"$hal_source/include")
+"$cc_bin" -std=c11 "${common_flags[@]}" \
+	-c "$hal_source/generic-pc/hardware_caps.c" -o "$out_dir/generic-hardware-caps.o"
+"$cxx_bin" -std=c++11 "${common_flags[@]}" \
+	-c "$hal_source/generic-pc/playback.cpp" -o "$out_dir/generic-playback.o"
+"$cc_bin" -std=c11 "${common_flags[@]}" \
+	"$repo/tests/hardware-caps-api-test.c" -o "$out_dir/hardware-caps-api-test"
+"$out_dir/hardware-caps-api-test"
+"$cc_bin" -std=c11 -Wall -Wextra -Werror \
+	"$repo/tests/native-headless-test.c" -o "$out_dir/native-headless-test"
+"$out_dir/native-headless-test"
+
+printf 'PASS: native x86-64 Generic-PC subset compiled\n'
+printf 'HAL source: %s\n' "$hal_source"
+printf 'Artifacts: generic-hardware-caps.o generic-playback.o\n'

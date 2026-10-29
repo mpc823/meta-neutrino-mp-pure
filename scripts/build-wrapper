@@ -72,7 +72,7 @@ build_pid_is_live() {
 }
 
 target_build_running() {
-	ps -eo args= | awk '/[b]itbake/ && /neutrino-image/ && !/[b]itbake-server/ {found=1} END {exit !found}'
+	ps -eo args= | awk -v target="$build_target" '/[b]itbake/ && !/[b]itbake-server/ && index($0, target) {found=1} END {exit !found}'
 }
 
 notify() {

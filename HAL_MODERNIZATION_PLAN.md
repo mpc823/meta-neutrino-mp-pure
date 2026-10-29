@@ -92,9 +92,62 @@ bleibt maßgeblich; `-k` darf niemals einen unvollständigen Image-Build als
 Erfolg melden. Die Fehlerliste ist die gemeinsame Eingabe für die spätere
 Ursachenanalyse.
 
+## Native x86-64-Headless-Stufe
+
+Der vorhandene Generic-PC-Code ist kein vollständig isolierter Hostbuild:
+
+- `generic-pc/hardware_caps.c` ist ohne externe Medienbibliotheken nativ
+  übersetzbar.
+- `generic-pc/playback.cpp` ist ebenfalls als HAL-Teil übersetzbar, bleibt
+  aber ein Dummy-/Diagnosepfad.
+- `generic-pc/video.cpp` benötigt FFmpeg-Entwicklungsheader und
+  OpenThreads; `audio.cpp` benötigt zusätzlich libao. `glfb.cpp` benötigt
+  OpenGL/GLUT/GLEW und OpenThreads. Diese Header sind auf dem Host derzeit
+  nicht installiert. Deshalb wird keine vollständige PC-Wiedergabe behauptet.
+
+Der reproduzierbare erste Testpfad ist:
+
+```sh
+cd ~/Projekte/neutrino/meta-neutrino-mp-pure
+./scripts/native-x86-headless
+```
+
+Optional kann der entpackte, auf feste `LIBSTB_HAL_SRCREV` bezogene HAL-Quellbaum
+explizit gewählt werden:
+
+```sh
+NEUTRINO_LIBSTB_HAL_SOURCE=/pfad/zu/libstb-hal \
+  ./scripts/native-x86-headless
+```
+
+Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
+`generic-pc/playback.cpp`, prüft die Capability-API und führt einen
+deterministischen Software-OSD-Hash sowie einen headless Eingabeereignistest
+über `poll()`/Pipe aus. Es erzeugt keine dauerhaften Testbilder. Der
+deterministische Test ist ein Rendering-Regressionsvektor, nicht die echte
+GLFB-Ausgabe.
+
+Bewusst getrennte Statusklassen:
+
+1. **Nativ kompiliert:** HAL-Teilobjekte und Testprogramm bauen auf x86-64.
+2. **Headless bestanden:** Capability-, Software-OSD- und Pipe-Eingabetests
+   laufen erfolgreich.
+3. **Video/Audio funktional:** aktuell nicht belegt; dafür fehlen Host-
+   Entwicklungsheader und echte Medien-/Audioausgabe.
+4. **Grafikausgabe/Hardwarebeschleunigung:** nicht getestet; es gibt keinen
+   Desktop- oder DRM/KMS-Startpfad.
+
+Ein natives Full-Core-Buildziel ist der nächste separate Schritt. Dafür müssen
+die vorhandenen Host-Entwicklungsabhängigkeiten reproduzierbar bereitgestellt
+werden; sie werden nicht ungeprüft in das Receiver-Image übernommen. Ein
+optional späteres Yocto-x86-64-Image sollte erst nach dem nativen Core-/HAL-
+Build als eigener MACHINE-/BSP-Schritt folgen.
+
 ## Testkriterien
 
 - API-Header kompiliert mit C11, `-Wall -Wextra -Werror`.
+- `./scripts/native-x86-headless` kompiliert den Generic-PC-HAL-Teil nativ und
+  besteht die Capability-, Software-OSD- und Eingabetests.
 - `libstb-hal:do_compile` und anschließend `neutrino-mp:do_compile` laufen
   für Raspberry Pi 2 durch.
 - OpenMAX-Objekte und die bisherige `generic/raspi`-Auswahl bleiben im

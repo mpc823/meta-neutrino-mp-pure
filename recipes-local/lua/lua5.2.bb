@@ -12,14 +12,14 @@ PR = "r0"
 SRC_URI = "http://www.lua.org/ftp/lua-${PV}.tar.gz \
            file://lua5.2.pc \
           "
-S = "${WORKDIR}/lua-${PV}"
+S = "${UNPACKDIR}/lua-${PV}"
 
 inherit pkgconfig binconfig
 
 TARGET_CC_ARCH += " -fPIC ${LDFLAGS}"
 EXTRA_OEMAKE = "'CC=${CC} -fPIC' 'MYCFLAGS=${CFLAGS} -DLUA_USE_LINUX -fPIC' MYLDFLAGS='${LDFLAGS}'"
 
-do_configure_prepend() {
+do_configure:prepend() {
 	sed -i -e s:/usr/local:${prefix}:g src/luaconf.h
 }
 
@@ -36,14 +36,14 @@ do_install () {
 		'INSTALL_SHARE=${D}${datadir}/lua' \
 		install
 	install -d ${D}${libdir}/pkgconfig
-	sed "s/^Version:.*/Version: ${PV}/" ${WORKDIR}/lua5.2.pc >  ${D}${libdir}/pkgconfig/lua5.2.pc
+	sed "s/^Version:.*/Version: ${PV}/" ${UNPACKDIR}/lua5.2.pc >  ${D}${libdir}/pkgconfig/lua5.2.pc
 }
 BBCLASSEXTEND = "native"
 
-FILES_${PN} += "${libdir}/lua"
-FILES_${PN} += "${datadir}/lua"
+FILES:${PN} += "${libdir}/lua"
+FILES:${PN} += "${datadir}/lua"
 
-RDEPENDS_${PN}-dev_append = " ${PN}-staticdev"
+RDEPENDS:${PN}-dev:append = " ${PN}-staticdev"
 
 SRC_URI[md5sum] = "dc7f94ec6ff15c985d2d6ad0f1b35654"
 SRC_URI[sha256sum] = "13c2fb97961381f7d06d5b5cea55b743c163800896fd5c5e2356201d3619002d"

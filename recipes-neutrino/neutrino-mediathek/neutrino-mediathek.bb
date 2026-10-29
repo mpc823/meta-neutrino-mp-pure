@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = " \
 	file://COPYING;md5=751419260aa954499f7abaabaa882bbe \
 "
 
-SRCREV = "${AUTOREV}"
+SRCREV = "${NEUTRINO_MEDIATHEK_SRCREV}"
 P_V = "0.3~beta-2"
 PV = "${P_V}+git${SRCPV}"
 PR = "r0"
@@ -19,10 +19,10 @@ SRC_URI = " \
 	${SOURCE_GITHUB} \
 "
 
-RDEPENDS_${PN} = "lua-json"
-RREPLACES_${PN} = "coolithek"
+RDEPENDS:${PN} = "lua-json"
+RREPLACES:${PN} = "coolithek"
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 do_configure () {
 	# fail early, if the code version has changed against our package version
@@ -42,7 +42,7 @@ do_install () {
 	cp -r --preserve=timestamps ${S}/share/lua  ${D}/${datadir}/
 }
 
-FILES_${PN} = " \
+FILES:${PN} = " \
 	${libdir}/tuxbox/plugins \
 	${datadir}/lua/5.2 \
 "
@@ -50,7 +50,7 @@ FILES_${PN} = " \
 # no need for -dev and -dbg..
 PACKAGES = "${PN}"
 
-pkg_postinst_${PN} () {
+pkg_postinst:${PN} () {
 	# pic2m2v is only available on platforms that use "real" libstb-hal
 	if which pic2m2v >/dev/null 2>&1; then
 		pic2m2v ${libdir}/tuxbox/plugins/neutrino-mediathek/background.jpg

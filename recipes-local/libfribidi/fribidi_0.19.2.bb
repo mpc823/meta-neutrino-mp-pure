@@ -9,7 +9,7 @@ PROVIDES = "libfribidi"
 
 inherit autotools lib_package pkgconfig
 
-CFLAGS_append = "  -DPAGE_SIZE=4096 "
+CFLAGS:append = "  -DPAGE_SIZE=4096 "
 
 SRC_URI = "http://fribidi.org/download/fribidi-${PV}.tar.gz"
 

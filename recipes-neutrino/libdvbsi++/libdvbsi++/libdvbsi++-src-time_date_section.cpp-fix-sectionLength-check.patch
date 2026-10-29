@@ -3,6 +3,8 @@ From: [CST] Focus <focus.cst@gmail.com>
 Date: Thu, 1 Mar 2012 13:37:55 +0400
 Subject: [PATCH 1/2] src/time_date_section.cpp: fix sectionLength check
 
+Upstream-Status: Pending [original upstream status not verified]
+
 ---
  src/time_date_section.cpp |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)

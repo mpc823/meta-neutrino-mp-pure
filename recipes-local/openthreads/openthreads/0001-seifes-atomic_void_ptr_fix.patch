@@ -1,3 +1,5 @@
+Upstream-Status: Pending [not yet submitted upstream]
+
 --- /tmp/OpenThreads/include/OpenThreads/Atomic
 +++ /tmp/OpenThreads-svn-13083/include/OpenThreads/Atomic
 @@ -241,7 +241,7 @@

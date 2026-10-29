@@ -6,15 +6,15 @@ HOMEPAGE = "https://gitorious.org/neutrino-hd/neutrino-hd-plugins"
 
 DEPENDS = "freetype"
 
-SRCREV = "${AUTOREV}"
+SRCREV = "${NEUTRINO_HD_PLUGINS_SRCREV}"
 PV = "0.0+git${SRCPV}"
 # does not work like that?
 # PV_nhd-plugin-tuxcom = "1.17+git${SRCPV}"
 
-SRC_URI = "git://github.com/neutrino-mp/neutrino-hd-plugins.git;protocol=http \
+SRC_URI = "git://github.com/neutrino-mp/neutrino-hd-plugins.git;protocol=https;nobranch=1 \
 "
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 inherit autotools pkgconfig
 
@@ -24,9 +24,9 @@ EXTRA_OECONF += " \
 	--with-configdir=/var/tuxbox/config \
 "
 
-EXTRA_OECONF_append_spark = " --with-boxtype=spark"
-EXTRA_OECONF_append_coolstream = " --with-boxtype=coolstream"
-EXTRA_OECONF_append_tripledragon = " --with-boxtype=tripledragon"
+EXTRA_OECONF:append:spark = " --with-boxtype=spark"
+EXTRA_OECONF:append:coolstream = " --with-boxtype=coolstream"
+EXTRA_OECONF:append:tripledragon = " --with-boxtype=tripledragon"
 
 N_CFLAGS = "-Wall -W -Wshadow -g -O2 -funsigned-char"
 N_CXXFLAGS = "${N_CFLAGS}"
@@ -49,10 +49,10 @@ do_install () {
 PACKAGES += "nhd-plugin-tuxcom"
 
 # main package is empty, might later depend on all plugins
-FILES_${PN} = ""
-FILES_${PN}-dbg += "${libdir}/tuxbox/plugins/.debug"
+FILES:${PN} = ""
+FILES:${PN}-dbg += "${libdir}/tuxbox/plugins/.debug"
 
-FILES_nhd-plugin-tuxcom = " \
+FILES:nhd-plugin-tuxcom = " \
 	${libdir}/tuxbox/plugins/tuxcom* \
 	/var/tuxbox/config/tuxcom/ \
 "

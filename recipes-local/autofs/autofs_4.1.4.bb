@@ -51,11 +51,11 @@ SRC_URI = "${KERNELORG_MIRROR}/linux/daemons/autofs/v4/${BP}.tar.gz \
 SRC_URI[md5sum] = "c092d27caa36c9ac160466ebb4c1cdfa"
 SRC_URI[sha256sum] = "d5265d3175c9975604d7e672b18643130f9efe061c9edd55b7a91d003781c395"
 
-S = "${WORKDIR}/${BP}"
+S = "${UNPACKDIR}/${BP}"
 
 inherit autotools-brokensep update-rc.d
 
-do_configure_prepend () {
+do_configure:prepend () {
         if [ ! -e acinclude.m4 ]; then
                 cp aclocal.m4 acinclude.m4
         fi
@@ -80,7 +80,7 @@ do_install () {
 	rmdir ${D}/var/run/autofs ${D}/var/run
 }
 
-CONFFILES_${PN} = " \
+CONFFILES:${PN} = " \
 	${sysconfdir}/auto.hotplug \
 	${sysconfdir}/auto.master \
 	${sysconfdir}/auto.network \
@@ -97,12 +97,12 @@ def autofs4_module_dep(bb, d):
             return "kernel-module-autofs4"
     return ""
 
-RDEPENDS_${PN} = "procps"
-RDEPENDS_${PN} += "${@autofs4_module_dep(bb, d)}"
+RDEPENDS:${PN} = "procps"
+RDEPENDS:${PN} += "${@autofs4_module_dep(bb, d)}"
 
 INITSCRIPT_NAME = "autofs"
 INITSCRIPT_PARAMS = "defaults"
 
 PARALLEL_MAKE = ""
 
-INSANE_SKIP_${PN} = "dev-so"
+INSANE_SKIP:${PN} = "dev-so"

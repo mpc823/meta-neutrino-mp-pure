@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [Neutrino legacy ffprobe compatibility]
+
 From 534d88a9f977d8ad68b199fe35555b973e45f71a Mon Sep 17 00:00:00 2001
 From: "[CST] Focus" <focus.cst@gmail.com>
 Date: Mon, 6 Oct 2014 15:57:26 +0400
@@ -12,9 +14,9 @@ diff --git a/libavformat/utils.c b/libavformat/utils.c
 index e095d60..926b400 100644
 --- a/libavformat/utils.c
 +++ b/libavformat/utils.c
-@@ -110,6 +110,26 @@ MAKE_ACCESSORS(AVFormatContext, format, int, metadata_header_padding)
- MAKE_ACCESSORS(AVFormatContext, format, void *, opaque)
+@@ -114,6 +114,26 @@
  MAKE_ACCESSORS(AVFormatContext, format, av_format_control_message, control_message_cb)
+ MAKE_ACCESSORS(AVFormatContext, format, AVOpenCallback, open_cb)
  
 +void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
 +{

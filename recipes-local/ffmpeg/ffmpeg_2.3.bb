@@ -4,17 +4,17 @@ require ffmpeg.inc
 
 PR = "${INC_PR}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/ffmpeg-2.3:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/ffmpeg-2.3:"
 
 SRC_URI = " \
 	http://www.ffmpeg.org/releases/ffmpeg-${PV}.tar.bz2;name=ffmpeg-${PV} \
 "
 # this does not work but keeps the patch for reference for now :-)
-SRC_URI_append_ffmpeg-2.3.3 = " \
+SRC_URI:append:ffmpeg-2.3.3 = " \
 	file://0001-avformat-vobsub-fix-NULL-dereference.patch \
 "
 
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://0002-ffmpeg-add-ASF-VC1-Annex-G-and-RCV-bitstream-filters.patch \
 	file://0003-libavutil-libm.h-fix-compile.patch \
 	file://0005-libavformat-aviobuf-keep-track-of-the-original-buffe.patch \
@@ -40,4 +40,4 @@ EXTRA_OECONF += " \
 	--enable-postproc \
 "
 
-PROVIDES = "ffmpeg_${PV}"
+PROVIDES = "ffmpeg:${PV}"

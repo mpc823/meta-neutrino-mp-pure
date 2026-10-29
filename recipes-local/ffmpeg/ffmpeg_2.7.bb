@@ -4,28 +4,29 @@ require ffmpeg.inc
 
 PR = "${INC_PR}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/ffmpeg-2.7:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/ffmpeg-2.7:"
 
 SRC_URI = " \
 	http://www.ffmpeg.org/releases/ffmpeg-${PV}.tar.bz2;name=ffmpeg-${PV} \
 "
 
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://0002-ffmpeg-add-ASF-VC1-Annex-G-and-RCV-bitstream-filters.patch \
 	file://0005-libavformat-aviobuf-keep-track-of-the-original-buffe.patch \
 	file://0006-Add-HDS-support.patch \
 	file://0009-libavformat-utils.c-fix-linking-issue-that-breaks-ff.patch \
 "
 # newer patches ffmpeg-head => dvbsubfix
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://0002-avcodec-dvbsubdec-Implement-display-definition-segme.patch \
 	file://0003-avcodec-dvbsubdec-Compute-default-CLUT-based-on-bitm.patch \
 	file://0004-avcodec-dvbsubdec-Allow-selecting-the-substream-or-a.patch \
 	file://0005-ffplay-Use-sws_scale-to-scale-subtitles.patch \
 	file://0006-avcodec-dvbsubdec-Add-option-to-select-when-to-compu.patch \
 "
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://ffmpeg-add-tremor-decoding-support.patch \
+	file://0010-arm-mlpdsp-fix-binutils-2.43-labels.patch \
 "
 
 
@@ -43,4 +44,4 @@ EXTRA_OECONF += " \
 	--enable-postproc \
 "
 
-PROVIDES = "ffmpeg_${PV}"
+PROVIDES = "ffmpeg:${PV}"

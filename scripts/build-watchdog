@@ -1,0 +1,354 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Detached overnight supervisor. It supervises build-wrapper, never starts a
+# second build, and stops after three retries without measurable progress.
+
+machine="${2:-raspberrypi2}"
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+build_root="$(readlink -f "${NEUTRINO_BUILD_ROOT:-${repo}/../.neutrino-build}")"
+monitor_dir="${build_root}/monitor/${machine}"
+watchdog_dir="${monitor_dir}/watchdog"
+state_file="${watchdog_dir}/state"
+wrapper="${repo}/scripts/build-wrapper"
+watchdog="$(readlink -f "${BASH_SOURCE[0]}")"
+# Progress is reported every five minutes, but process state is sampled every
+# few seconds.  A long progress interval must never hide a dead BitBake.
+poll_seconds="${NEUTRINO_WATCHDOG_POLL_SECONDS:-300}"
+process_poll_seconds="${NEUTRINO_WATCHDOG_PROCESS_POLL_SECONDS:-2}"
+stall_seconds="${NEUTRINO_WATCHDOG_STALL_SECONDS:-1800}"
+
+mkdir -p "$watchdog_dir"
+umask 077
+
+now() { date --iso-8601=seconds; }
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+
+write_state() {
+    local tmp="${state_file}.tmp.$$"
+    {
+        printf 'state=%s\n' "${state:-}"
+        printf 'machine=%s\n' "$machine"
+        printf 'watchdog_pid=%s\n' "${watchdog_pid:-}"
+        printf 'attempt=%s\n' "${attempt:-0}"
+        printf 'restart_count=%s\n' "${restart_count:-0}"
+        printf 'progress=%s\n' "${progress:-0}"
+        printf 'last_progress=%s\n' "${last_progress:-0}"
+        printf 'fingerprint=%s\n' "${fingerprint:-}"
+        printf 'started=%s\n' "${started:-}"
+        printf 'updated=%s\n' "$(now)"
+        printf 'reason=%s\n' "${reason:-}"
+        printf 'wrapper_status=%s\n' "${wrapper_status:-}"
+        printf 'health=%s\n' "${health:-}"
+        printf 'health_reason=%s\n' "${health_reason:-}"
+        printf 'disk_free_kb=%s\n' "${disk_free_kb:-}"
+        printf 'ram_available=%s\n' "${ram_available:-}"
+        printf 'swap_free=%s\n' "${swap_free:-}"
+        printf 'bitbake_count=%s\n' "${bitbake_count:-}"
+        printf 'server_count=%s\n' "${server_count:-}"
+    } > "$tmp"
+    mv -f "$tmp" "$state_file"
+}
+
+read_state() {
+    [[ -f "$state_file" ]] || return 1
+    while IFS='=' read -r key value; do
+        case "$key" in
+            state|machine|watchdog_pid|attempt|restart_count|progress|last_progress|fingerprint|started|updated|reason|wrapper_status|health|health_reason|disk_free_kb|ram_available|swap_free|bitbake_count|server_count)
+                printf -v "$key" '%s' "$value" ;;
+        esac
+    done < "$state_file"
+}
+
+watchdog_alive() {
+    [[ -r "/proc/${watchdog_pid:-0}/cmdline" ]] || return 1
+    [[ "$(tr '\0' ' ' < "/proc/${watchdog_pid}/cmdline")" == *"$watchdog"* ]]
+}
+
+wrapper_status() {
+    "$wrapper" status "$machine" 2>/dev/null || true
+}
+
+wrapper_log() {
+    local line
+    line="$(wrapper_status)"
+    printf '%s\n' "$line" | sed -nE 's/.*log=([^ ]+).*/\1/p'
+}
+
+update_progress() {
+    local log="$1" found
+    [[ -f "$log" ]] || return 0
+    found="$(sed -nE 's/.*Running task ([0-9]+) of ([0-9]+).*/\1 \2/p' "$log" | awk 'BEGIN{m=0;t=0} {if ($1>m)m=$1; if ($2>t)t=$2} END{if(t)print m "/" t; else print m}' | tail -1)"
+    [[ -n "$found" ]] && progress="$found"
+}
+
+report_progress() {
+    local memory swap
+    memory="$(free -h | awk '/^Mem:/ {print $7}')"
+    swap="$(free -h | awk '/^Swap:/ {print $4}')"
+    printf '%s\t%s\tattempt=%s\trestarts=%s\tram_available=%s\tswap_free=%s\n' \
+        "$(now)" "$progress" "$attempt" "$restart_count" "$memory" "$swap" \
+        >> "$watchdog_dir/progress.log"
+    notify "Neutrino-Build Fortschritt" "$machine: Task $progress, Versuch $attempt, RAM frei $memory, Swap frei $swap"
+}
+
+health_check() {
+    local log="$1" age total_kb used_kb avail_kb mem_total mem_avail swap_total swap_avail
+    health="OK"; health_reason=""
+    if [[ "${NEUTRINO_WATCHDOG_TEST_MODE:-0}" != "1" ]]; then
+        bitbake_count="$(pgrep -fc '^python3 .*/bitbake/bin/bitbake neutrino-image$' || true)"
+        server_count="$(pgrep -fc "${build_root}/sources/${machine}/bitbake/bin/bitbake-server" || true)"
+        if (( bitbake_count > 1 )); then
+            health="BLOCKED"; health_reason="mehr als eine BitBake-neutrino-image-Instanz"
+            return 1
+        fi
+        if [[ "$status_line" == LÄUFT* && "$server_count" == 0 ]]; then
+            health="BLOCKED"; health_reason="BitBake-Client lebt ohne BitBake-Server"
+            return 1
+        fi
+    fi
+    read -r total_kb used_kb avail_kb _ < <(df -Pk "$build_root" | awk 'NR==2 {print $2, $3, $4, $5}')
+    disk_free_kb="${avail_kb:-0}"
+    if (( disk_free_kb < 5242880 )); then
+        health="BLOCKED"; health_reason="weniger als 5 GiB freier Plattenplatz"
+        return 1
+    fi
+    # Do not use `read` for this: different procps/free variants can emit
+    # spacing or extra columns that make a two-field read silently empty.
+    mem_total="$(awk '/^MemTotal:/ {print $2 * 1024; exit}' /proc/meminfo)"
+    mem_avail="$(awk '/^MemAvailable:/ {print $2 * 1024; exit}' /proc/meminfo)"
+    swap_total="$(awk '/^SwapTotal:/ {print $2 * 1024; exit}' /proc/meminfo)"
+    swap_avail="$(awk '/^SwapFree:/ {print $2 * 1024; exit}' /proc/meminfo)"
+    ram_available="${mem_avail:-0}"; swap_free="${swap_avail:-0}"
+    if (( ram_available < 268435456 && swap_avail < 536870912 )); then
+        health="BLOCKED"; health_reason="RAM und Swap nahezu erschöpft"
+        return 1
+    fi
+    if [[ -f "$log" ]]; then
+        age=$(( $(date +%s) - $(stat -c %Y "$log") ))
+        if [[ "$status_line" == LÄUFT* && "$age" -gt "$stall_seconds" ]]; then
+            health="STALLED"; health_reason="Buildlog seit ${age}s unverändert"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+notify() {
+    local title="$1" body="$2"
+    if [[ -n "${NEUTRINO_NOTIFY_LOG:-}" ]]; then
+        printf '%s\t%s\t%s\n' "$(now)" "$title" "$body" >> "$NEUTRINO_NOTIFY_LOG"
+    fi
+    if [[ -n "${NEUTRINO_NOTIFY_COMMAND:-}" ]]; then
+        "$NEUTRINO_NOTIFY_COMMAND" "$title" "$body" || true
+    elif command -v notify-send >/dev/null 2>&1; then
+        notify-send --urgency=critical "$title" "$body" || true
+    fi
+}
+
+repair_known_failure() {
+    local log="$1"
+    # This is deliberately narrow: only a source-level fix already present in
+    # the versioned recipe may be retried automatically. Unknown failures are
+    # reported and never patched blindly overnight.
+    if grep -q 'lzcat: not found' "$log" && \
+       grep -q 'STAGING_BINDIR_NATIVE.*xz' "$repo/recipes-local/openthreads/openthreads_0.13083.bb" && \
+       ! grep -q 'lzcat' "$repo/recipes-local/openthreads/openthreads_0.13083.bb"; then
+        reason="openthreads-Rezept enthält bereits den reproduzierbaren xz-native-Fix; Cache/Task wird erneut ausgeführt"
+        return 0
+    fi
+    if grep -q 'S should be set relative to UNPACKDIR' "$log" && \
+       grep -q 'recipes-local/lua/lua5.2.bb' "$log"; then
+        local lua_recipe="$repo/recipes-local/lua/lua5.2.bb"
+        if grep -q 'S = "${WORKDIR}/lua-${PV}"' "$lua_recipe"; then
+            sed -i 's#S = "${WORKDIR}/lua-${PV}"#S = "${UNPACKDIR}/lua-${PV}"#' "$lua_recipe"
+            sed -i 's#${WORKDIR}/lua5.2.pc#${UNPACKDIR}/lua5.2.pc#' "$lua_recipe"
+            reason="lua5.2-Rezept automatisch auf UNPACKDIR migriert"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+start_wrapper() {
+    "$wrapper" start "$machine" >/dev/null
+    for _ in {1..100}; do
+        wrapper_status="$(wrapper_status)"
+        case "$wrapper_status" in
+            LÄUFT*|STARTET*)
+                [[ "$wrapper_status" == *"build_pid="[1-9]* ]] && break
+                ;;
+            *) break ;;
+        esac
+        sleep 0.1
+    done
+}
+
+start_or_attach_wrapper() {
+    wrapper_status="$(wrapper_status)"
+    case "$wrapper_status" in
+        LÄUFT*|STARTET*) return 0 ;;
+        *) start_wrapper ;;
+    esac
+}
+
+existing_target_running() {
+    pgrep -f '[b]itbake openthreads' >/dev/null 2>&1
+}
+
+existing_progress() {
+    local log
+    log="$(find "${build_root}/${machine}/tmp/log/cooker" -type f -name '*.log' -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,""); print}')"
+    [[ -n "$log" ]] || return 0
+    update_progress "$log"
+}
+
+run_watchdog() {
+    local status_line log rc current_fp
+    if [[ "${NEUTRINO_WATCHDOG_SERVICE:-0}" == "1" ]] && read_state && \
+       [[ "$state" == "BLOCKIERT" || "$state" == "ERFOLGREICH" ]]; then
+        # A terminal state is intentionally sticky across systemd restarts.
+        # Manual `start` remains the explicit reset/retry operation.
+        return 0
+    fi
+    watchdog_pid="$$"; started="$(now)"; attempt=0; restart_count=0
+    progress="0"; last_progress="0"; fingerprint=""; reason=""
+    state="STARTET"; write_state
+    # A targeted recipe test may already own the BitBake lock. Wait for that
+    # exact process instead of ever creating a parallel build.
+    while existing_target_running; do
+        state="WARTET_AUF_VORHERIGEN_BUILD"; existing_progress; write_state
+        sleep "$poll_seconds"
+    done
+    start_or_attach_wrapper
+    wrapper_status="$(wrapper_status)"
+    status_line="$wrapper_status"
+    log="$(printf '%s\n' "$status_line" | sed -nE 's/.*log=([^ ]+).*/\1/p')"
+    update_progress "$log"
+    health_check "$log" || true
+    state="LÄUFT"; attempt=1; write_state
+    local next_report now_epoch
+    next_report=$(( $(date +%s) + poll_seconds ))
+    while :; do
+        # This short wait is solely for lifecycle detection.  It does not
+        # generate notifications and therefore cannot create five-minute spam.
+        sleep "$process_poll_seconds"
+        status_line="$(wrapper_status)"
+        wrapper_status="$status_line"
+        log="$(printf '%s\n' "$status_line" | sed -nE 's/.*log=([^ ]+).*/\1/p')"
+        update_progress "$log"
+        health_check "$log" || {
+            write_state
+            notify "Neutrino-Watchdog GESUNDHEITSPROBLEM" "$machine: $health_reason"
+            if [[ "$health" == STALLED ]]; then
+                "$wrapper" stop "$machine" >/dev/null 2>&1 || true
+                sleep 2
+                status_line="$(wrapper_status)"
+                wrapper_status="$status_line"
+            else
+                state="BLOCKIERT"; reason="$health_reason"; write_state
+                notify "Neutrino-Watchdog BLOCKIERT" "$machine: $health_reason"
+                return 0
+            fi
+        }
+        now_epoch=$(date +%s)
+        if (( now_epoch >= next_report )); then
+            report_progress
+            next_report=$(( now_epoch + poll_seconds ))
+        fi
+        write_state
+        case "$status_line" in
+            LÄUFT*|STARTET*) continue ;;
+            ERFOLGREICH*)
+                state="ERFOLGREICH"; reason="neutrino-image erfolgreich gebaut"; write_state
+                notify "Neutrino-Watchdog ERFOLGREICH" "$machine: Fortschritt $progress"
+                return 0 ;;
+            FEHLGESCHLAGEN*)
+                current_fp="$( { grep -E '(^ERROR:|Task .* failed|do_.* failed)' "$log" 2>/dev/null || true; } | tail -20 | sha256sum | cut -d' ' -f1)"
+                if [[ -n "$fingerprint" && "$current_fp" == "$fingerprint" ]] || \
+                   [[ "$attempt" -gt 1 && "$progress" == "$last_progress" ]]; then
+                    state="BLOCKIERT"
+                    reason="identischer Fehler ohne Fortschritt; keine weitere automatische Wiederholung"
+                    write_state
+                    notify "Neutrino-Watchdog BLOCKIERT" "$machine: Fehler ohne Fortschritt. Log: $log"
+                    return 0
+                fi
+                if (( restart_count >= 3 )); then
+                    state="BLOCKIERT"; reason="maximal drei automatische Neustarts erreicht"; write_state
+                    notify "Neutrino-Watchdog BLOCKIERT" "$machine: maximale Neustarts erreicht. Log: $log"
+                    return 0
+                fi
+                last_progress="$progress"; fingerprint="$current_fp"
+                if ! repair_known_failure "$log"; then
+                    state="BLOCKIERT"; reason="Fehler nicht automatisch sicher reparierbar"; write_state
+                    notify "Neutrino-Watchdog FEHLER" "$machine: Rezeptfehler nicht sicher automatisch reparierbar. Log: $log"
+                    return 0
+                fi
+                restart_count=$((restart_count + 1)); attempt=$((attempt + 1)); state="STARTET"
+                write_state; start_or_attach_wrapper; state="LÄUFT"; write_state
+                ;;
+            ABGEBROCHEN*)
+                if (( restart_count >= 3 )); then
+                    state="BLOCKIERT"; reason="maximal drei Neustarts nach Abbruch erreicht"; write_state
+                    notify "Neutrino-Watchdog BLOCKIERT" "$machine: Build wiederholt abgebrochen"
+                    return 0
+                fi
+                restart_count=$((restart_count + 1)); attempt=$((attempt + 1)); state="STARTET"
+                write_state; start_or_attach_wrapper; state="LÄUFT"; write_state
+                ;;
+            *) state="BLOCKIERT"; reason="unbekannter Wrapperstatus: $status_line"; write_state; return 0 ;;
+        esac
+    done
+}
+
+status_cmd() {
+    if ! read_state; then printf 'KEIN_WATCHDOG\n'; return 0; fi
+    # Always refresh the wrapper state, including after a terminal watchdog
+    # state. This prevents BUILD=LÄUFT from becoming stale after BitBake died.
+    wrapper_status="$(wrapper_status)"
+    status_line="$wrapper_status"
+    if [[ "$state" == "STARTET" || "$state" == "LÄUFT" ]]; then
+        local_status_log="$(printf '%s\n' "$wrapper_status" | sed -nE 's/.*log=([^ ]+).*/\1/p')"
+        update_progress "$local_status_log"
+        updated="$(now)"
+        health_check "$local_status_log" || true
+        write_state
+    fi
+    if [[ "$state" == "STARTET" || "$state" == "LÄUFT" ]] && ! watchdog_alive; then
+        state="BLOCKIERT"; reason="Watchdog-PID ist nicht mehr aktiv"; write_state
+    fi
+    printf 'WATCHDOG=%s BUILD=%s ATTEMPT=%s RESTARTS=%s FORTSCHRITT=%s AKTUALISIERT=%s\n' \
+        "$state" "${wrapper_status:-unbekannt}" "${attempt:-0}" "${restart_count:-0}" "${progress:-0}" "${updated:-}"
+}
+
+start_cmd() {
+    if [[ -f "$state_file" ]] && read_state && [[ "$state" == "STARTET" || "$state" == "LÄUFT" ]] && watchdog_alive; then
+        die "Watchdog läuft bereits (PID $watchdog_pid)"
+    fi
+    if command -v systemd-inhibit >/dev/null 2>&1; then
+        nohup setsid systemd-inhibit --what=idle:sleep --mode=block --why="Neutrino Yocto Nachtbuild" \
+            "$watchdog" run "$machine" </dev/null >/dev/null 2>&1 &
+    else
+        nohup setsid "$watchdog" run "$machine" </dev/null >/dev/null 2>&1 &
+    fi
+    for _ in {1..50}; do [[ -f "$state_file" ]] && break; sleep 0.1; done
+    status_cmd
+}
+
+reset_cmd() {
+    if [[ -f "$state_file" ]] && read_state && watchdog_alive; then
+        die "Watchdog läuft bereits (PID $watchdog_pid)"
+    fi
+    state="RESET"; reason="bewusster neuer Buildlauf"; watchdog_pid=""; attempt=0
+    restart_count=0; progress="0"; last_progress="0"; fingerprint=""
+    wrapper_status=""; health=""; health_reason=""; write_state
+    printf 'RESET\n'
+}
+
+case "${1:-status}" in
+    start) start_cmd ;;
+    status) status_cmd ;;
+    run) run_watchdog ;;
+    reset) reset_cmd ;;
+    *) die "Verwendung: $0 {start|status|reset} [machine]" ;;
+esac

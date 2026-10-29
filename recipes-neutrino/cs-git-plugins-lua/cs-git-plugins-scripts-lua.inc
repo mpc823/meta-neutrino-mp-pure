@@ -1,6 +1,6 @@
 HOMEPAGE = "http://git.coolstreamtech.de/"
 DEPENDS = "lua5.2"
-RDEPENDS_${PN} = "lua-json luaposix"
+RDEPENDS:${PN} = "lua-json luaposix"
 
 #SRCREV = "${AUTOREV}"
 SRCREV = "2b0687ac88ee15f33653976c9e74842bba054b52"
@@ -11,11 +11,11 @@ PACKAGES = "${PN}"
 inherit allarch
 
 SRC_URI = " \
-	git://coolstreamtech.de/cst-public-plugins-scripts-lua.git \
+	git://coolstreamtech.de/cst-public-plugins-scripts-lua.git;nobranch=1 \
 "
 
-S = "${WORKDIR}/git/plugins"
+S = "${UNPACKDIR}/git/plugins"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
 	${libdir}/tuxbox/plugins \
 "

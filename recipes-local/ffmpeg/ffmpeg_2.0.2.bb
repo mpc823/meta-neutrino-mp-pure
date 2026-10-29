@@ -16,4 +16,4 @@ EXTRA_OECONF += " \
 	--enable-postproc \
 "
 
-PROVIDES = "ffmpeg_${PV}"
+PROVIDES = "ffmpeg:${PV}"

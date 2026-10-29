@@ -10,17 +10,17 @@ SRC_URI = "http://www.lua.org/ftp/lua-${PV}.tar.gz \
            file://bitwise_operators.patch \
            file://lua5.1.pc \
           "
-S = "${WORKDIR}/lua-${PV}"
+S = "${UNPACKDIR}/lua-${PV}"
 
 inherit pkgconfig binconfig
 
 UCLIBC_PATCHES += "file://uclibc-pthread.patch"
-SRC_URI_append_libc-uclibc = "${UCLIBC_PATCHES}"
+SRC_URI:append:libc-uclibc = "${UCLIBC_PATCHES}"
 
 TARGET_CC_ARCH += " -fPIC ${LDFLAGS}"
 EXTRA_OEMAKE = "'CC=${CC} -fPIC' 'MYCFLAGS=${CFLAGS} -DLUA_USE_LINUX -fPIC' MYLDFLAGS='${LDFLAGS}'"
 
-do_configure_prepend() {
+do_configure:prepend() {
 	sed -i -e s:/usr/local:${prefix}:g src/luaconf.h
 }
 
@@ -41,8 +41,8 @@ do_install () {
 }
 BBCLASSEXTEND = "native"
 
-FILES_${PN} += "${libdir}/lua"
-FILES_${PN} += "${datadir}/lua"
+FILES:${PN} += "${libdir}/lua"
+FILES:${PN} += "${datadir}/lua"
 
 SRC_URI[md5sum] = "d0870f2de55d59c1c8419f36e8fac150"
 SRC_URI[sha256sum] = "b038e225eaf2a5b57c9bcc35cd13aa8c6c8288ef493d52970c9545074098af3a"

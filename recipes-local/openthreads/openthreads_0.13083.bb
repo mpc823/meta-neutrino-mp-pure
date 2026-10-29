@@ -11,17 +11,21 @@ PR = "r1"
 
 # this is a tarball of http://svn.openscenegraph.org/osg/OpenThreads/ rev 13083
 SRC_URI = "file://OpenThreads-svn-13083.tar.lzma \
-           file://002-omit-policy-cmp0014.patch;pnum=0 \
+           file://003-cmake-minimum-version.patch \
 "
 
 SRC_URI[md5sum] = "e3e1853207acbc65a9f4f008851125fe"
 SRC_URI[sha256sum] = "a745a62950689b9cf39c8213047a8f0403ebd82c488be301578d7b6906615184"
 
-S = "${WORKDIR}/OpenThreads-svn-13083/"
+S = "${UNPACKDIR}/OpenThreads-svn-13083"
 
 do_unpack() {
-	lzcat ${THISDIR}/openthreads/OpenThreads-svn-13083.tar.lzma | tar x
+	${STAGING_BINDIR_NATIVE}/xz --format=lzma --decompress --stdout \
+		"${THISDIR}/openthreads/OpenThreads-svn-13083.tar.lzma" | \
+		tar --extract --no-same-owner --directory "${UNPACKDIR}"
 }
+
+do_unpack[depends] += "xz-native:do_populate_sysroot"
 
 inherit cmake 
 

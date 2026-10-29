@@ -21,27 +21,27 @@ EXTRA_OECONF = " \
 	--enable-ffmpegdec \
 "
 
-EXTRA_OECONF_append_raspberrypi += "\
+EXTRA_OECONF:append:raspberrypi = "\
 	--with-boxtype=generic --with-boxmodel=raspi \
 "
 
-EXTRA_OECONF_append_raspberrypi2 += "\
+EXTRA_OECONF:append:raspberrypi2 = "\
 	--with-boxtype=generic --with-boxmodel=raspi \
 "
 
-EXTRA_OECONF_append_tripledragon += "\
+EXTRA_OECONF:append:tripledragon = "\
 	--with-boxtype=tripledragon \
 	--disable-upnp \
 "
 
-EXTRA_OECONF_append_coolstream += "\
+EXTRA_OECONF:append:coolstream = "\
 	--with-boxtype=coolstream \
 "
 
-EXTRA_OECONF_append_spark += "\
+EXTRA_OECONF:append:spark = "\
 	--with-boxtype=spark \
 "
 
-EXTRA_OECONF_append_spark7162 += "\
+EXTRA_OECONF:append:spark7162 = "\
 	--with-boxtype=spark \
 "

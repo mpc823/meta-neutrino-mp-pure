@@ -1,0 +1,32 @@
+# Yocto/OpenEmbedded build output (build roots are normally kept outside this layer).
+build/
+tmp/
+cache/
+downloads/
+sstate-cache/
+*.lock
+*.sock
+bitbake-cookerdaemon.log
+
+# Local/editor and generated files.
+*.log
+*.pyc
+__pycache__/
+.env
+*.swp
+
+# Credentials and local overrides.
+*.pem
+*.key
+*credentials*
+local.conf
+bblayers.conf
+
+# Generated images and packages accidentally copied into the layer.
+*.img
+*.wic
+*.ipk
+*.deb
+*.rpm
+*.tar
+*.tar.gz

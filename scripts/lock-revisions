@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+out="${1:-${repo}/../.neutrino-build/yocto-revisions.lock.yml}"
+command -v kas >/dev/null || { echo 'ERROR: kas is required' >&2; exit 1; }
+mkdir -p "$(dirname "$out")"
+echo "Writing immutable layer lock: $out"
+kas lock -o "$out" "$repo/kas/wrynose.yml"
+echo "Review the lock file and commit it only after all source licenses and revisions are approved."

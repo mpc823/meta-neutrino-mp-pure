@@ -1,6 +1,6 @@
 require giflib_${PV}.bb
 
-S = "${WORKDIR}/giflib-${PV}"
+S = "${UNPACKDIR}/giflib-${PV}"
 
 PACKAGES = ""
 

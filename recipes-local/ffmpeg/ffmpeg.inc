@@ -1,20 +1,20 @@
 SUMMARY = "A complete, cross-platform solution to record, convert and stream audio and video."
 HOMEPAGE = "http://ffmpeg.org/"
 SECTION = "libs"
-LICENSE = "GPLv2+"
+LICENSE = "GPL-2.0-or-later"
 LICENSE_FLAGS = "commercial"
 
 ARM_INSTRUCTION_SET = "arm"
 
 DEPENDS = " \
-	zlib libogg yasm-native \
+	zlib libogg nasm-native \
 "
 
-DEPENDS_append_spark = "libxml2"
-DEPENDS_append_raspberrypi = "libxml2"
-DEPENDS_append_raspberrypi2 = "libxml2"
-DEPENDS_append_coolstream = "libxml2"
-DEPENDS_append_tripledragon = "tremor"
+DEPENDS:append:spark = "libxml2"
+DEPENDS:append:raspberrypi = "libxml2"
+DEPENDS:append:raspberrypi2 = "libxml2"
+DEPENDS:append:coolstream = "libxml2"
+DEPENDS:append:tripledragon = "tremor"
 
 INC_PR = "r4"
 
@@ -22,18 +22,18 @@ inherit autotools pkgconfig
 
 B = "${S}/build.${HOST_SYS}.${TARGET_SYS}"
 
-FULL_OPTIMIZATION_armv7a = "-fexpensive-optimizations -fomit-frame-pointer -O4 -ffast-math"
+FULL_OPTIMIZATION:armv7a = "-fexpensive-optimizations -fomit-frame-pointer -O4 -ffast-math"
 BUILD_OPTIMIZATION = "${FULL_OPTIMIZATION}"
 
-EXTRA_FFCONF_armv7a = "--cpu=cortex-a8"
+EXTRA_FFCONF:armv7a = "--cpu=cortex-a8"
 EXTRA_FFCONF ?= ""
 
 # don't ask.
 # libavcodec built with *any* optimisation (-O,-O2,-Os) dies with "floating point exception"
 # in aacdec. So remove the optimization flags and add the ones I found in the manpage manually
 # TODO: verify with newer compiler versions again.
-TARGET_CFLAGS_remove_spark = "-O2"
-TARGET_CFLAGS_append_spark = " \
+TARGET_CFLAGS:remove:spark = "-O2"
+TARGET_CFLAGS:append:spark = " \
 	-fauto-inc-dec -fcompare-elim -fcprop-registers -fdce -fdefer-pop \
 	-fdelayed-branch -fdse -fguess-branch-probability -fif-conversion2 -fif-conversion \
 	-fipa-pure-const -fipa-profile -fipa-reference -fmerge-constants -fsplit-wide-types \
@@ -88,11 +88,11 @@ EXTRA_OECONF = " \
     --disable-libxcb \
     ${EXTRA_FFCONF} \
 "
-EXTRA_OECONF_append_raspberrypi = " \
+EXTRA_OECONF:append:raspberrypi = " \
 	--arch=arm \
 	--cpu=armv6 \
 "
-EXTRA_OECONF_append_coolstream = " \
+EXTRA_OECONF:append:coolstream = " \
 	--disable-runtime-cpudetect \
 	--arch=arm \
 	--cpu=armv6 \
@@ -167,7 +167,7 @@ EXTRA_OECONF_append_coolstream = " \
 	--disable-swscale \
 "
 
-EXTRA_OECONF_append_spark = " \
+EXTRA_OECONF:append:spark = " \
 	--disable-runtime-cpudetect \
 	--enable-demuxers \
 	--disable-devices \
@@ -177,7 +177,7 @@ EXTRA_OECONF_append_spark = " \
 
 # strip down ffmpeg for tripledragon: most of it is not useful here.
 # --arch=ppc4xx seems to still have a problem with the assembler...
-EXTRA_OECONF_append_tripledragon = " \
+EXTRA_OECONF:append:tripledragon = " \
 	--arch=ppc4xx \
 	--disable-altivec \
 	--disable-libtheora \
@@ -225,9 +225,16 @@ do_configure() {
     cd ${B}
     ${S}/configure ${EXTRA_OECONF}
     sed -i -e s:Os:O4:g ${B}/config.h
+    # FFmpeg embeds its complete configure command in config.h/config.mak.
+    # Remove the ephemeral work directory from that diagnostic string so the
+    # generated target binaries remain reproducible and pass buildpaths QA.
+    sed -i \
+        -e "s#${TMPDIR}#<build-tmpdir>#g" \
+        -e "s#${WORKDIR}#<build-workdir>#g" \
+        ${B}/config.h
 }
 
-do_install_append() {
+do_install:append() {
 	if test -d ${D}${includedir}/libavfilter/; then
 		install -m 0644 ${S}/libavfilter/*.h ${D}${includedir}/libavfilter/
 	fi
@@ -238,21 +245,21 @@ FFMPEG_LIBS = "libavcodec libavdevice libavformat \
 
 PACKAGES += "${PN}-vhook-dbg ${PN}-vhook ffmpeg-x264-presets"
 
-## RSUGGESTS_${PN} = "mplayer"
-FILES_${PN} = "${bindir} ${datadir}/ffprobe.xsd"
-FILES_${PN}-dev = "${includedir}/${PN}"
+## RSUGGESTS:${PN} = "mplayer"
+FILES:${PN} = "${bindir} ${datadir}/ffprobe.xsd"
+FILES:${PN}-dev = "${includedir}/${PN}"
 
-FILES_${PN}-vhook = "${libdir}/vhook"
-FILES_${PN}-vhook-dbg += "${libdir}/vhook/.debug"
+FILES:${PN}-vhook = "${libdir}/vhook"
+FILES:${PN}-vhook-dbg += "${libdir}/vhook/.debug"
 
-FILES_ffmpeg-x264-presets = "${datadir}/*.ffpreset"
+FILES:ffmpeg-x264-presets = "${datadir}/*.ffpreset"
 
 LEAD_SONAME = "libavcodec.so"
 
-FILES_${PN}-dev = "${includedir}"
-FILES_${PN}-dev += "${datadir}/examples"
+FILES:${PN}-dev = "${includedir}"
+FILES:${PN}-dev += "${datadir}/examples"
 
-python populate_packages_prepend() {
+python populate_packages:prepend() {
     av_libdir = d.expand('${libdir}')
     av_pkgconfig = d.expand('${libdir}/pkgconfig')
 

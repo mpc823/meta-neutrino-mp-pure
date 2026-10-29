@@ -5,9 +5,9 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://../LICENSE;md5=751419260aa954499f7abaabaa882bbe"
 
 DEPENDS += "lua5.2"
-SRCREV = "392"
+SRCREV = "${XUPNPD_SRCREV}"
 SRC_URI = "\
-	svn://tsdemuxer.googlecode.com/svn/trunk;protocol=http;module=xupnpd \
+	git://github.com/clark15b/xupnpd.git;branch=master;protocol=https \
 	file://0001-ui-add-Neutrino-MP-config-controls.patch \
 	file://0002-ui_restart-fix-xupnpd-install-path.patch \
 	file://xupnpd.init \
@@ -15,11 +15,11 @@ SRC_URI = "\
 	file://xupnpd_neutrino-mp.lua \
 "
 
-PV = "0.0+svn${SRCREV}"
+PV = "0.0+git${SRCPV}"
 PR = "r4"
-S = "${WORKDIR}/xupnpd/src"
+S = "${UNPACKDIR}/git/src"
 
-inherit base update-rc.d
+inherit update-rc.d
 
 INITSCRIPT_NAME = "xupnpd"
 INITSCRIPT_PARAMS = "defaults"

@@ -9,17 +9,17 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://${THISDIR}/libstb-hal/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
 
 # hack: make sure we do not try to build on coolstream
-COMPATIBLE_MACHINE_coolstream = "none"
+COMPATIBLE_MACHINE:coolstream = "none"
 
 DEPENDS = "\
 	openthreads \
 	ffmpeg \
 "
 
-DEPENDS_append_spark = "tdt-driver libass"
-DEPENDS_append_spark7162 = "tdt-driver libass"
-DEPENDS_append_raspberrypi = "virtual/egl"
-DEPENDS_append_tripledragon = "directfb triple-sdk"
+DEPENDS:append:spark = "tdt-driver libass"
+DEPENDS:append:spark7162 = "tdt-driver libass"
+DEPENDS:append:raspberrypi = "virtual/egl"
+DEPENDS:append:tripledragon = "directfb triple-sdk"
 
 WORKDIR = "${TMPDIR}/neutrino-${MACHINE}"
 LIBSTBHAL_SOURCEDIR ?= "/local/seife/src/neutrino-sources/libstb-hal"
@@ -28,7 +28,7 @@ B = "${WORKDIR}/hal-build"
 
 inherit autotools pkgconfig
 
-# CFLAGS_append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
+# CFLAGS:append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
 
 SPARK_GEN_CFLAGS = "-funsigned-char"
 
@@ -47,10 +47,10 @@ EXTRA_OECONF += "\
 
 SPARK_GEN_EXTRA_OECONF = " --with-boxtype=spark "
 
-EXTRA_OECONF_append_spark += "${SPARK_GEN_EXTRA_OECONF}"
-EXTRA_OECONF_append_spark7162 += "${SPARK_GEN_EXTRA_OECONF}"
-EXTRA_OECONF_append_raspberrypi += "--with-boxtype=generic --with-boxmodel=raspi"
-EXTRA_OECONF_append_tripledragon += "--with-boxtype=tripledragon"
+EXTRA_OECONF:append:spark = "${SPARK_GEN_EXTRA_OECONF}"
+EXTRA_OECONF:append:spark7162 = "${SPARK_GEN_EXTRA_OECONF}"
+EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
+EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
 
 do_compile () {
 	test -e version.h || touch version.h

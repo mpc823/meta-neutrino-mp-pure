@@ -1,0 +1,22 @@
+[Unit]
+Description=Neutrino Yocto Raspberry Pi 2 build watchdog
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/home/haag/Projekte/neutrino/meta-neutrino-mp-pure
+Environment=NEUTRINO_WATCHDOG_SERVICE=1
+Environment=NEUTRINO_WATCHDOG_POLL_SECONDS=300
+Environment=NEUTRINO_WATCHDOG_PROCESS_POLL_SECONDS=2
+Environment=NEUTRINO_NOTIFY_LOG=/home/haag/Projekte/neutrino/.neutrino-build/monitor/raspberrypi2/watchdog/notifications.log
+ExecStart=/usr/bin/systemd-inhibit --what=idle:sleep --mode=block '--why=Neutrino Yocto Nachtbuild' /home/haag/Projekte/neutrino/meta-neutrino-mp-pure/scripts/build-watchdog run raspberrypi2
+Restart=on-failure
+RestartSec=30
+TimeoutStopSec=30
+KillMode=control-group
+
+[Install]
+WantedBy=default.target

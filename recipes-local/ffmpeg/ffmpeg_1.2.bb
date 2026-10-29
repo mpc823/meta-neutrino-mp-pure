@@ -7,7 +7,7 @@ PV = "1.2.5"
 
 require ffmpeg.inc
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/ffmpeg-1.2:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/ffmpeg-1.2:"
 
 SRC_URI = " \
 	http://ffmpeg.org/releases/ffmpeg-${PV}.tar.bz2;name=ffmpeg-${PV} \
@@ -28,4 +28,4 @@ LIC_FILES_CHKSUM = " \
 	file://COPYING.LGPLv3;md5=e6a600fd5e1d9cbde2d983680233ad02 \
 "
 
-PROVIDES = "ffmpeg_${PV}"
+PROVIDES = "ffmpeg:${PV}"

@@ -1,0 +1,20 @@
+Upstream-Status: Inappropriate [legacy source requires modern CMake compatibility]
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,9 +1,9 @@
+ IF(WIN32)
+-    CMAKE_MINIMUM_REQUIRED(VERSION 2.4.6 FATAL_ERROR)
++    CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
+ ELSE(WIN32)
+     IF(APPLE)
+-        CMAKE_MINIMUM_REQUIRED(VERSION 2.4.6 FATAL_ERROR)
++        CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
+     ELSE(APPLE)
+-        CMAKE_MINIMUM_REQUIRED(VERSION 2.4.0 FATAL_ERROR)
++        CMAKE_MINIMUM_REQUIRED(VERSION 3.5 FATAL_ERROR)
+     ENDIF(APPLE)
+ ENDIF(WIN32)
+@@ -65,1 +65,1 @@
+-SUBDIRS(src/OpenThreads examples)
++SUBDIRS(src/OpenThreads)

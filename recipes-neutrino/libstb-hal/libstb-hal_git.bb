@@ -10,7 +10,7 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://${THISDIR}/libstb-hal/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
 
 # hack: make sure we do not try to build on coolstream
-COMPATIBLE_MACHINE_coolstream = "none"
+COMPATIBLE_MACHINE:coolstream = "none"
 #
 # this stuff really is machine specific, not CPU specific
 PACKAGE_ARCH = "${MACHINE_ARCH}"
@@ -23,24 +23,24 @@ DEPENDS = "\
 # on coolstream, the same is provided by cs-drivers pkg (libcoolstream)
 PROVIDES += "virtual/stb-hal-libs"
 
-DEPENDS_append_spark = "tdt-driver libass"
-DEPENDS_append_raspberrypi = "virtual/egl"
-DEPENDS_append_raspberrypi2 = "virtual/egl"
-DEPENDS_append_tripledragon = "directfb triple-sdk"
+DEPENDS:append:spark = "tdt-driver libass"
+DEPENDS:append:raspberrypi = "virtual/egl"
+DEPENDS:append:raspberrypi2 = "virtual/egl"
+DEPENDS:append:tripledragon = "directfb triple-sdk"
 
-RDEPENDS_${PN} = "ffmpeg"
-RDEPENDS_${PN}-dev_append_spark = " tdt-driver-dev"
-RDEPENDS_${PN}-dev_append_tripledragon = " triple-sdk-dev"
+RDEPENDS:${PN} = "ffmpeg"
+RDEPENDS:${PN}-dev:append:spark = " tdt-driver-dev"
+RDEPENDS:${PN}-dev:append:tripledragon = " triple-sdk-dev"
 
-SRCREV = "${AUTOREV}"
+SRCREV = "${LIBSTB_HAL_SRCREV}"
 PV = "0.1+git${SRCPV}"
 
 # prepend, or it will end up in -bin package...
-PACKAGES_prepend_spark = "spark-fp "
+PACKAGES:prepend:spark = "spark-fp "
 # libstb-hal-bin package for testing binaries etc.
 PACKAGES += "${PN}-bin"
 
-LIBSTB_HAL_GIT ?= "git://github.com/neutrino-mp/libstb-hal.git;protocol=https"
+LIBSTB_HAL_GIT ?= "git://github.com/neutrino-mp/libstb-hal.git;protocol=https;nobranch=1"
 
 SRC_URI = " \
 	${LIBSTB_HAL_GIT} \
@@ -49,13 +49,11 @@ SRC_URI = " \
 	file://timer-wakeup.init \
 "
 
-S = "${WORKDIR}/git"
-
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
 inherit autotools-brokensep pkgconfig
 
-# CFLAGS_append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
+# CFLAGS:append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
 
 CFLAGS_spark += "-funsigned-char"
 CPPFLAGS_tripledragon += "-I${STAGING_DIR_HOST}/usr/include/hardware"
@@ -68,25 +66,25 @@ EXTRA_OECONF += "\
 	--enable-shared \
 "
 
-EXTRA_OECONF_append_spark += "--with-boxtype=spark"
-EXTRA_OECONF_append_raspberrypi += "--with-boxtype=generic --with-boxmodel=raspi"
-EXTRA_OECONF_append_raspberrypi2 += "--with-boxtype=generic --with-boxmodel=raspi"
-EXTRA_OECONF_append_tripledragon += "--with-boxtype=tripledragon"
+EXTRA_OECONF:append:spark = "--with-boxtype=spark"
+EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
+EXTRA_OECONF:append:raspberrypi2 = "--with-boxtype=generic --with-boxmodel=raspi"
+EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
 
-do_configure_prepend() {
+do_configure:prepend() {
 	export AUTOMAKE="automake --foreign"
 }
 
-do_install_append() {
+do_install:append() {
 	install -d ${D}/${datadir}
 }
 
-do_install_append_tripledragon() {
+do_install:append:tripledragon() {
 	install -D -m 0644 ${WORKDIR}/blank_576.mpg ${D}/${datadir}/tuxbox/blank_576.mpg
 	install -D -m 0644 ${WORKDIR}/blank_480.mpg ${D}/${datadir}/tuxbox/blank_480.mpg
 }
 
-do_install_append_spark() {
+do_install:append:spark() {
 	install -D -m 0755 ${WORKDIR}/timer-wakeup.init ${D}/${sysconfdir}/init.d/timer-wakeup
 	# neutrino is 99, so we put this at 98.
 	update-rc.d -r ${D} timer-wakeup start 98 5 .
@@ -94,20 +92,20 @@ do_install_append_spark() {
 
 # pic2m2v is included in lib package, because it is always needed,
 # libstb-hal-bin contains all other binaries, which are rather for testing only
-FILES_${PN} = "\
+FILES:${PN} = "\
 	${libdir}/* \
 	${bindir}/pic2m2v \
 	${datadir} \
 "
 
-FILES_${PN}-dev += "${includedir}/libstb-hal/*"
+FILES:${PN}-dev += "${includedir}/libstb-hal/*"
 
-FILES_spark-fp = " \
+FILES:spark-fp = " \
 	${bindir}/spark_fp \
 	${sysconfdir} \
 "
 
-pkg_postinst_${PN} () {
+pkg_postinst:${PN} () {
 	# after updating libstb-hal, neutrino should be restarted.
 	touch /tmp/.restart
 }

@@ -27,38 +27,38 @@ DEPENDS += " \
 	pugixml \
 "
 
-RDEPENDS_${PN} += " \
+RDEPENDS:${PN} += " \
 	tzdata \
 	luaposix \
 "
 
 # maybe this should rather be in the image dependencies? it is not needed for building...
-DEPENDS_append_tripledragon = " \
+DEPENDS:append:tripledragon = " \
 	td-dvb-wrapper \
 "
 # need to check ffmpegdec on triple...
-DEPENDS_append_tripledragon = " \
+DEPENDS:append:tripledragon = " \
 	tremor \
 	flac \
 	libid3tag \
 	libmad \
 	libvorbis \
 "
-RDEPENDS_${PN}_append_tripledragon += "kernel-module-td-dvb-frontend"
-RDEPENDS_${PN}_append_spark += " spark-fp"
+RDEPENDS:${PN}:append:tripledragon = " kernel-module-td-dvb-frontend"
+RDEPENDS:${PN}:append:spark = " spark-fp"
 
-RCONFLICTS_${PN} = "neutrino-hd2"
+RCONFLICTS:${PN} = "neutrino-hd2"
 
 # loosely follow the tuxbox versioning
 N_MAJOR = "3"
 N_MINOR = "7"
 N_MICRO = "1"
 
-SRCREV = "${AUTOREV}"
+SRCREV = "${NEUTRINO_MP_SRCREV}"
 PV = "${N_MAJOR}.${N_MINOR}.${N_MICRO}+git${SRCPV}"
 #PR = "r2"
 
-NEUTRINO_MP_GIT ?= "git://github.com/neutrino-mp/neutrino-mp.git"
+NEUTRINO_MP_GIT ?= "git://github.com/neutrino-mp/neutrino-mp.git;protocol=https;nobranch=1"
 
 SRC_URI = " \
 	${NEUTRINO_MP_GIT} \
@@ -69,19 +69,19 @@ SRC_URI = " \
 	file://COPYING.GPL \
 "
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
 inherit autotools-brokensep pkgconfig update-rc.d
 
 INITSCRIPT_PACKAGES   = "${PN}"
-INITSCRIPT_NAME_${PN} = "neutrino"
-INITSCRIPT_PARAMS_${PN} = "start 99 5 . stop 20 0 1 2 3 4 6 ."
+INITSCRIPT_NAME:${PN} = "neutrino"
+INITSCRIPT_PARAMS:${PN} = "start 99 5 . stop 20 0 1 2 3 4 6 ."
 
 include neutrino-mp.inc
 
-do_configure_prepend() {
+do_configure:prepend() {
 	INSTALL="`which install` -p"
 	export INSTALL
 }
@@ -96,7 +96,7 @@ do_compile () {
 	oe_runmake CFLAGS="${N_CFLAGS}" CXXFLAGS="${N_CXXFLAGS}" LDFLAGS="${N_LDFLAGS}"
 }
 
-do_install_prepend () {
+do_install:prepend () {
 	install -d ${D}/${sysconfdir}/init.d
 	install -m 755 ${WORKDIR}/neutrino.init ${D}/${sysconfdir}/init.d/neutrino
 	install -m 755 ${WORKDIR}/custom-poweroff.init ${D}/${sysconfdir}/init.d/custom-poweroff
@@ -114,7 +114,7 @@ do_install_prepend () {
 }
 
 # compatibility with binaries hand-built with --prefix=
-do_install_append() {
+do_install:append() {
 	install -d ${D}/share/
 	ln -s ../usr/share/tuxbox ${D}/share/
 	ln -s ../usr/share/fonts  ${D}/share/
@@ -151,7 +151,7 @@ fi
 }
 
 
-FILES_${PN} += "\
+FILES:${PN} += "\
 	/.version \
 	${sysconfdir} \
 	/usr/share \
@@ -168,7 +168,7 @@ FILES_${PN} += "\
 	/var/tuxbox/plugins \
 "
 
-CONFFILES_${PN} += " \
+CONFFILES:${PN} += " \
 	/var/tuxbox/config/bad_package_pattern.list \
 	/var/tuxbox/config/cables.xml \
 	/var/tuxbox/config/radio-stations.xml \
@@ -178,7 +178,7 @@ CONFFILES_${PN} += " \
 	/var/tuxbox/config/tobackup.conf \
 "
 
-pkg_postinst_${PN} () {
+pkg_postinst:${PN} () {
 	update-alternatives --install /bin/backup.sh backup.sh /usr/bin/backup.sh 100
 	update-alternatives --install /bin/install.sh install.sh /usr/bin/install.sh 100
 	update-alternatives --install /bin/restore.sh restore.sh /usr/bin/restore.sh 100

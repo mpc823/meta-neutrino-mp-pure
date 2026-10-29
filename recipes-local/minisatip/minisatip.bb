@@ -7,20 +7,20 @@ HOMEPAGE = "https://toda.ro/forum/"
 DEPENDS = "libdvbcsa"
 
 SRC_URI = " \
-	git://github.com/catalinii/minisatip.git;protocol=http \
+	git://github.com/catalinii/minisatip.git;protocol=https;nobranch=1 \
 	file://minisatip-strange-drivers.diff \
 	file://minisatip.init \
 "
 
-SRCREV = "${AUTOREV}"
+SRCREV = "${MINISATIP_SRCREV}"
 UPSTREAMVERSION = "0.5.10"
 PV = "${UPSTREAMVERSION}+git${SRCPV}"
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
-## EXTRA_OEMAKE_append = " DVBCSA=yes DVBCA=no "
-LDFLAGS_append = " -lpthread -lrt -ldvbcsa "
-CFLAGS_append = " -DDISABLE_DVBCA "
+## EXTRA_OEMAKE:append = " DVBCSA=yes DVBCA=no "
+LDFLAGS:append = " -lpthread -lrt -ldvbcsa "
+CFLAGS:append = " -DDISABLE_DVBCA "
 
 INITSCRIPT_NAME = "minisatip"
 

@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [legacy CMake compatibility for this pinned source]
+
 Index: CMakeLists.txt
 ===================================================================
 --- CMakeLists.txt	(Revision 13083)

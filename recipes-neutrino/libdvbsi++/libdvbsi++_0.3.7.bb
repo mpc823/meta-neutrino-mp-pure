@@ -6,7 +6,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=a6f89e2100d9b6cdffcea4f398e37343"
 PR = "r3"
 
 SRC_URI = " \
-           http://www.saftware.de/${PN}/${P}.tar.bz2 \
+           http://www.saftware.de/${BPN}/${P}.tar.bz2 \
            file://libdvbsi++-fix-unaligned-access-on-SuperH.patch \
            file://libdvbsi++-src-time_date_section.cpp-fix-sectionLength-check.patch \
 "

@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [configuration]
+
 diff --git a/src/pugiconfig.hpp b/src/pugiconfig.hpp
 index 7d364de..af3f498 100644
 --- a/src/pugiconfig.hpp

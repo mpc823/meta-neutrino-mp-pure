@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+status=0
+fail() { printf 'ERROR: %s\n' "$*" >&2; status=1; }
+command -v rg >/dev/null || fail "rg is required"
+if rg -n '^[[:space:]]*[^#].*(AUTOREV|protocol=http([;" ]|$)|svn://)' "$root" --glob '*.bb' --glob '*.inc' --glob '*.bbappend' --glob '*.conf' --glob '*.yml'; then
+  fail "unreproducible or insecure source reference found"
+fi
+if rg -n '_append|_prepend|_remove' "$root" --glob '*.bb' --glob '*.inc' --glob '*.bbappend' --glob '*.conf'; then
+  fail "legacy override syntax found; use VAR:override"
+fi
+if rg -n '^\s*S\s*=\s*"\$\{WORKDIR\}' "$root" --glob '*.bb' --glob '*.inc' --glob '*.bbappend'; then
+  fail "recipe source directory still uses WORKDIR; use UNPACKDIR"
+fi
+for patch_file in "$root"/recipes-local/ffmpeg/ffmpeg-2.7/*.patch; do
+  if ! rg -q 'Upstream-Status:' "$patch_file"; then
+    fail "missing Upstream-Status: $patch_file"
+  fi
+done
+printf 'layer validation: %s\n' "$([[ $status == 0 ]] && echo PASS || echo FAIL)"
+exit "$status"

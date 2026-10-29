@@ -5,7 +5,7 @@ LICENSE = "GPLv2"
 LIC_FILES_CHKSUM = "file://${WORKDIR}/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe \
 "
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/neutrino-mp:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/neutrino-mp:"
 
 # even if I'd like it to be otherwise, right now neutrino is machine specific, not CPU specific
 PACKAGE_ARCH = "${MACHINE_ARCH}"
@@ -28,7 +28,7 @@ DEPENDS += " \
 	libsigc++-2.0 \
 "
 
-RDEPENDS_${PN} += " \
+RDEPENDS:${PN} += " \
 	curl \
 	libid3tag \
 	libmad \
@@ -46,43 +46,43 @@ RDEPENDS_${PN} += " \
 	libsigc++-2.0 \
 "
 
-DEPENDS_append_coolstream = "\
+DEPENDS:append:coolstream = "\
 	virtual/stb-hal-libs \
 "
 
-DEPENDS_append_raspberrypi = "\
+DEPENDS:append:raspberrypi = "\
 	virtual/egl \
 "
 
-DEPENDS_append_raspberrypi2 = "\
+DEPENDS:append:raspberrypi2 = "\
 	userland \
 "
 
-RDEPENDS_${PN}_append_coolstream = "\
+RDEPENDS:${PN}:append:coolstream = "\
 	virtual/stb-hal-libs \
 "
 
 
-RDEPENDS_${PN} += " \
+RDEPENDS:${PN} += " \
 	tzdata \
 	luaposix \
 "
 
 # maybe this should rather be in the image dependencies? it is not needed for building...
-DEPENDS_append_tripledragon = " \
+DEPENDS:append:tripledragon = " \
 	td-dvb-wrapper \
 "
-RDEPENDS_${PN}_append_tripledragon += "kernel-module-td-dvb-frontend"
+RDEPENDS:${PN}:append:tripledragon = " kernel-module-td-dvb-frontend"
 
 ##### from libstb-hal:
-RDEPENDS_${PN}_append_spark += " tdt-driver libass"
+RDEPENDS:${PN}:append:spark = " tdt-driver libass"
 ### does not work, not RPROVIDED
-###RDEPENDS_${PN}_append_raspberrypi += " virtual/egl"
-RDEPENDS_${PN}_append_tripledragon += " directfb triple-sdk"
+###RDEPENDS:${PN}:append:raspberrypi += " virtual/egl"
+RDEPENDS:${PN}:append:tripledragon = " directfb triple-sdk"
 
-RDEPENDS_${PN} += "ffmpeg"
-RDEPENDS_${PN}-dev_append_spark = " tdt-driver-dev"
-RDEPENDS_${PN}-dev_append_tripledragon = " triple-sdk-dev"
+RDEPENDS:${PN} += "ffmpeg"
+RDEPENDS:${PN}-dev:append:spark = " tdt-driver-dev"
+RDEPENDS:${PN}-dev:append:tripledragon = " triple-sdk-dev"
 
 PV = "0.1"
 

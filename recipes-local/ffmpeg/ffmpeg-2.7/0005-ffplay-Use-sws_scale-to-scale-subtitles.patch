@@ -1,3 +1,5 @@
+Upstream-Status: Backport [FFmpeg 2.7 compatibility]
+
 From b5aa6398fcfb21b2caa86e0934df32bbf4c25b5d Mon Sep 17 00:00:00 2001
 From: Michael Niedermayer <michael@niedermayer.cc>
 Date: Sun, 26 Jul 2015 21:25:21 +0200

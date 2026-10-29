@@ -32,5 +32,5 @@ IMAGE_INSTALL += "${@'kernel-image' if MACHINE != 'tripledragon' else ''}"
 
 EXTRAOPKGCONFIG = "neutrino-feed-config"
 
-SDKIMAGE_FEATURES_append = " staticdev-pkgs"
-TOOLCHAIN_TARGET_TASK_append = " lua5.2-dev"
+SDKIMAGE_FEATURES:append = " staticdev-pkgs"
+TOOLCHAIN_TARGET_TASK:append = " lua5.2-dev"

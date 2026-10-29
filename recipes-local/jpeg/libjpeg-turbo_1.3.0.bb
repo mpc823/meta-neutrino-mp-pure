@@ -14,9 +14,9 @@ SRC_URI[sha256sum] = "2657008cfc08aadbaca065bd9f8964b8a2c0abd03e73da5b5f09c1216b
 
 # Drop-in replacement for jpeg
 PROVIDES = "jpeg"
-RPROVIDES_${PN} += "jpeg"
-RREPLACES_${PN} += "jpeg"
-RCONFLICTS_${PN} += "jpeg"
+RPROVIDES:${PN} += "jpeg"
+RREPLACES:${PN} += "jpeg"
+RCONFLICTS:${PN} += "jpeg"
 
 inherit autotools pkgconfig
 
@@ -24,10 +24,10 @@ inherit autotools pkgconfig
 
 PACKAGES =+ "jpeg-tools libturbojpeg"
 
-DESCRIPTION_jpeg-tools = "The jpeg-tools package includes the client programs for access libjpeg functionality.  These tools allow for the compression, decompression, transformation and display of JPEG files."
-FILES_jpeg-tools = "${bindir}/*"
+DESCRIPTION:jpeg-tools = "The jpeg-tools package includes the client programs for access libjpeg functionality.  These tools allow for the compression, decompression, transformation and display of JPEG files."
+FILES:jpeg-tools = "${bindir}/*"
 
-FILES_libturbojpeg = "${libdir}/libturbojpeg.so.*"
+FILES:libturbojpeg = "${libdir}/libturbojpeg.so.*"
 
 BBCLASSEXTEND = "native"
 DEPENDS = "nasm-native"

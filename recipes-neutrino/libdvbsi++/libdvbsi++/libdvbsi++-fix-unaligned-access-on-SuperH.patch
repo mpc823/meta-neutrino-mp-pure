@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [platform-specific legacy compatibility]
+
 diff --git a/include/dvbsi++/byte_stream.h b/include/dvbsi++/byte_stream.h
 index 0387a15..204f9a9 100644
 --- a/include/dvbsi++/byte_stream.h

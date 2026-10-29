@@ -17,4 +17,4 @@ inherit cmake
 
 EXTRA_OECMAKE += "-DBUILD_SHARED_LIBS:BOOL=ON"
 
-FILES_${PN}-dev += "${libdir}/cmake/pugixml/*"
+FILES:${PN}-dev += "${libdir}/cmake/pugixml/*"

@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [Neutrino legacy Tremor decoder support]
+
 Index: b/configure
 ===================================================================
 --- a/configure

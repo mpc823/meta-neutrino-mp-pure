@@ -1,0 +1,28 @@
+From 5ed2358b12b2611aa4ce7e44d5793071c6fa61fb Mon Sep 17 00:00:00 2001
+From: Ross Burton <ross.burton@arm.com>
+Date: Fri, 9 Aug 2024 13:49:24 +0100
+Subject: [PATCH] libavcodec/arm/mlpdsp_armv5te: fix labels for binutils 2.43
+
+Upstream-Status: Backport [https://git.videolan.org/?p=ffmpeg.git;a=commit;h=5ed2358b12b2611aa4ce7e44d5793071c6fa61fb]
+
+Recent binutils rejects numeric local labels with a leading zero.
+
+---
+ libavcodec/arm/mlpdsp_armv5te.S | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/libavcodec/arm/mlpdsp_armv5te.S b/libavcodec/arm/mlpdsp_armv5te.S
+index 4f9aa485fd..d31568611c 100644
+--- a/libavcodec/arm/mlpdsp_armv5te.S
++++ b/libavcodec/arm/mlpdsp_armv5te.S
+@@ -232,1 +232,1 @@
+-01:
++1:
+@@ -244,1 +244,1 @@
+-        bne     01b
++        bne     1b
+@@ -336,1 +336,1 @@
+-        bne     01b
++        bne     1b
+-- 
+2.43.0

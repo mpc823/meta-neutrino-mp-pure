@@ -8,13 +8,13 @@ include cs-git-plugins-scripts-lua.inc
 
 PR = "r0"
 
-RDEPENDS_${PN} = "xupnpd curl"
+RDEPENDS:${PN} = "xupnpd curl"
 
 SRC_URI += " \
 	file://0001-xupnpd_youtube_fix.patch;striplevel=2 \
 "
 
-S = "${WORKDIR}/git/xupnpd"
+S = "${UNPACKDIR}/git/xupnpd"
 
 do_install () {
 	install -d ${D}/usr/share/xupnpd/plugins
@@ -25,6 +25,6 @@ do_install () {
 	install -m 644 ${S}/xupnpd_youtube.lua ${D}/usr/share/xupnpd/plugins/xupnpd_youtube2.lua
 }
 
-FILES_${PN} = "\
+FILES:${PN} = "\
 	/usr/share/xupnpd/plugins \
 "

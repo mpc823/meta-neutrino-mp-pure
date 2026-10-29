@@ -12,7 +12,7 @@ SRC_URI = " \
 	file://system-update-opkg.sh \
 	file://copying.wtfpl \
 "
-S = "${WORKDIR}"
+S = "${UNPACKDIR}"
 
 do_install () {
 	install -d ${D}${bindir}/

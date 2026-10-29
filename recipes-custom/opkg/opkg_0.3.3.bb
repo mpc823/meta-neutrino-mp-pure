@@ -1,5 +1,5 @@
 SUMMARY = "Open Package Manager"
-SUMMARY_libopkg = "Open Package Manager library"
+SUMMARY:libopkg = "Open Package Manager library"
 SECTION = "base"
 HOMEPAGE = "http://code.google.com/p/opkg/"
 BUGTRACKER = "http://code.google.com/p/opkg/issues/list"
@@ -22,7 +22,7 @@ SRC_URI[sha256sum] = "19db9e73121a5e4c91fa228b0a6a4c55cc3591056130cfb3c66c30aa32
 
 inherit autotools pkgconfig systemd
 
-SYSTEMD_SERVICE_${PN} = "opkg-configure.service"
+SYSTEMD_SERVICE:${PN} = "opkg-configure.service"
 
 target_localstatedir := "${localstatedir}"
 OPKGLIBDIR = "${target_localstatedir}/lib"
@@ -37,7 +37,7 @@ PACKAGECONFIG[sha256] = "--enable-sha256,--disable-sha256"
 PACKAGECONFIG[pathfinder] = "--enable-pathfinder,--disable-pathfinder,pathfinder"
 PACKAGECONFIG[libsolv] = "--with-libsolv,--without-libsolv,libsolv"
 
-do_install_append () {
+do_install:append () {
 	install -d ${D}${sysconfdir}/opkg
 	install -m 0644 ${WORKDIR}/opkg.conf ${D}${sysconfdir}/opkg/opkg.conf
 	echo "option lists_dir ${OPKGLIBDIR}/opkg/lists" >>${D}${sysconfdir}/opkg/opkg.conf
@@ -56,18 +56,18 @@ do_install_append () {
 	fi
 }
 
-RDEPENDS_${PN} = "${VIRTUAL-RUNTIME_update-alternatives} opkg-arch-config run-postinsts libarchive"
-RDEPENDS_${PN}_class-native = ""
-RDEPENDS_${PN}_class-nativesdk = ""
-RREPLACES_${PN} = "opkg-nogpg opkg-collateral"
-RCONFLICTS_${PN} = "opkg-collateral"
-RPROVIDES_${PN} = "opkg-collateral"
+RDEPENDS:${PN} = "${VIRTUAL-RUNTIME_update-alternatives} opkg-arch-config run-postinsts libarchive"
+RDEPENDS:${PN}:class-native = ""
+RDEPENDS:${PN}:class-nativesdk = ""
+RREPLACES:${PN} = "opkg-nogpg opkg-collateral"
+RCONFLICTS:${PN} = "opkg-collateral"
+RPROVIDES:${PN} = "opkg-collateral"
 
 PACKAGES =+ "libopkg"
 
-FILES_libopkg = "${libdir}/*.so.* ${OPKGLIBDIR}/opkg/"
-FILES_${PN} += "${systemd_unitdir}/system/"
+FILES:libopkg = "${libdir}/*.so.* ${OPKGLIBDIR}/opkg/"
+FILES:${PN} += "${systemd_unitdir}/system/"
 
 BBCLASSEXTEND = "native nativesdk"
 
-CONFFILES_${PN} = "${sysconfdir}/opkg/opkg.conf"
+CONFFILES:${PN} = "${sysconfdir}/opkg/opkg.conf"

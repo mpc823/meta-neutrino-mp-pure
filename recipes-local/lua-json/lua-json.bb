@@ -14,9 +14,9 @@ inherit allarch
 
 PV = "20141223.14"
 
-S = "${WORKDIR}"
+S = "${UNPACKDIR}"
 
-FILES_${PN} += "/usr/share/lua/5.2"
+FILES:${PN} += "/usr/share/lua/5.2"
 # no need for -dev and -dbg..
 PACKAGES = "${PN}"
 

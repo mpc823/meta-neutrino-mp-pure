@@ -69,7 +69,15 @@ fi
 
 pkg_modules=(libavformat libavcodec libavutil libswresample libswscale ao OpenThreads sigc++-2.0 pugixml freetype2 libpng libjpeg giflib glut glew)
 for module in "${pkg_modules[@]}"; do
-	pkg-config --exists "$module" 2>/dev/null && pass_check "pkg-config module: $module" || warn_check "pkg-config module missing: $module"
+	if pkg-config --exists "$module" 2>/dev/null; then
+		pass_check "pkg-config module: $module"
+	elif [[ "$module" == OpenThreads ]] && [[ -f /usr/include/OpenThreads/Thread ]] && grep -q 'libOpenThreads\.so' < <(ldconfig -p 2>/dev/null); then
+		pass_check 'OpenThreads headers/library available (no pkg-config file)'
+	elif [[ "$module" == giflib ]] && [[ -f /usr/include/gif_lib.h ]] && grep -q 'libgif\.so' < <(ldconfig -p 2>/dev/null); then
+		pass_check 'giflib headers/library available (no pkg-config file)'
+	else
+		warn_check "pkg-config module missing: $module"
+	fi
 done
 
 python3 - <<'PY' >/dev/null 2>&1 && pass_check 'Python yaml module available' || warn_check 'Python yaml module missing (needed by kas)'

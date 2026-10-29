@@ -4,6 +4,8 @@ set -Eeuo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 default_hal="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/libstb-hal/0.1+git/sources/libstb-hal-0.1+git"
 hal_source="${NEUTRINO_LIBSTB_HAL_SOURCE:-$default_hal}"
+default_neutrino="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/neutrino-mp/3.7.1+git/sources/neutrino-mp-3.7.1+git"
+neutrino_source="${NEUTRINO_CORE_SOURCE:-$default_neutrino}"
 cc_bin="${CC:-cc}"
 cxx_bin="${CXX:-c++}"
 out_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-native-x86.XXXXXX")"
@@ -26,6 +28,27 @@ common_flags=(-Wall -Wextra -Werror -I"$hal_source/include")
 	"$repo/tests/native-headless-test.c" -o "$out_dir/native-headless-test"
 "$out_dir/native-headless-test"
 
+if [[ -d "$neutrino_source/lib/libconfigfile" && -f "$neutrino_source/src/driver/abstime.c" ]]; then
+	"$cc_bin" -std=c11 -D_POSIX_C_SOURCE=200809L "${common_flags[@]}" \
+		-c "$neutrino_source/src/driver/abstime.c" \
+		-o "$out_dir/abstime.o"
+	"$cxx_bin" -std=c++11 "${common_flags[@]}" -I"$neutrino_source/lib/libconfigfile" \
+		"$neutrino_source/lib/libconfigfile/configfile.cpp" \
+		"$out_dir/abstime.o" \
+		"$repo/tests/native-core-test.cpp" -o "$out_dir/native-core-test"
+	"$out_dir/native-core-test"
+else
+	printf 'INFO: Neutrino-Core-Quellbaum nicht vorhanden; Core-Test übersprungen: %s\n' "$neutrino_source" >&2
+fi
+
+if [[ "${NEUTRINO_SANITIZE:-0}" == 1 ]]; then
+	"$cc_bin" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+		-fno-omit-frame-pointer -g "$repo/tests/native-headless-test.c" \
+		-o "$out_dir/native-headless-sanitized"
+	ASAN_OPTIONS=detect_leaks=1 "$out_dir/native-headless-sanitized"
+fi
+
 printf 'PASS: native x86-64 Generic-PC subset compiled\n'
 printf 'HAL source: %s\n' "$hal_source"
+printf 'Neutrino core source: %s\n' "$neutrino_source"
 printf 'Artifacts: generic-hardware-caps.o generic-playback.o\n'

@@ -120,6 +120,32 @@ NEUTRINO_LIBSTB_HAL_SOURCE=/pfad/zu/libstb-hal \
   ./scripts/native-x86-headless
 ```
 
+Mit dem vorhandenen Yocto-Quellbaum prüft dasselbe Skript zusätzlich den
+gemeinsamen Neutrino-Core (`lib/libconfigfile/configfile.cpp` und
+`src/driver/abstime.c`). Der Pfad kann reproduzierbar gesetzt werden:
+
+```sh
+NEUTRINO_CORE_SOURCE=/pfad/zu/neutrino-mp ./scripts/native-x86-headless
+NEUTRINO_SANITIZE=1 ./scripts/native-x86-headless
+```
+
+Der zweite Befehl führt den isolierten Headless-Test zusätzlich mit
+ASan/UBSan aus. Ein vollständiger nativer Generic-PC-Build benötigt weiterhin
+Host-Entwicklungspakete; im geprüften Linux-Mint-System fehlen mindestens die
+Header für FFmpeg 6.1.1, OpenThreads 3.6.5, libao 1.2.2, sigc++ 2.12 und
+Freetype 2.13.2. Die reproduzierbare Installation lautet:
+
+```sh
+sudo apt-get update
+sudo apt-get install libsigc++-2.0-dev libfreetype-dev libpng-dev libjpeg-dev \
+  libavformat-dev libavcodec-dev libavutil-dev libswresample-dev libswscale-dev \
+  libopenthreads-dev libao-dev liblua5.2-dev
+```
+
+`sudo -n true` war auf dem Entwicklungsrechner nicht möglich; daher wurden
+keine Systempakete und keine ARM-Sysroot-Header installiert. GLUT/GLEW sind
+für den headless Softwarepfad nicht erforderlich und bleiben bewusst außen vor.
+
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen
 deterministischen Software-OSD-Hash sowie einen headless Eingabeereignistest

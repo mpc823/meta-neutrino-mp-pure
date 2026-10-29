@@ -10,8 +10,7 @@ hostlib="${NEUTRINO_HOSTLIB:-${repo}/../../.neutrino-hosttools/root/usr/lib/x86_
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 case "$machine" in
   raspberrypi2) ;;
-  hd51)
-    die "hd51 is experimental: provide the matching neutrino-hd/meta-hd51 BSP (commit 260fa831d8a4d523710839f66a2eaa9fa2df24bb) and a Wrynose-compatible layer stack before building" ;;
+  hd51) ;;
   *) die "the Wrynose bootstrap currently defines raspberrypi2; add a machine-specific KAS config for $machine" ;;
 esac
 mkdir -p "$build_root" "$build_dir"
@@ -29,4 +28,6 @@ printf 'Build root: %s\nMachine:    %s\n' "$build_root" "$machine"
 printf 'NOTE: layer commits are pinned in kas/wrynose.yml; run scripts/lock-revisions to emit an auditable lockfile.\n'
 export KAS_BUILD_DIR="$build_dir"
 export KAS_WORK_DIR="$source_dir"
-exec kas build --target neutrino-image "$repo/kas/wrynose.yml"
+kas_config="$repo/kas/wrynose.yml"
+[[ "$machine" == hd51 ]] && kas_config="$repo/kas/hd51-wrynose.yml"
+exec kas build --target neutrino-image "$kas_config"

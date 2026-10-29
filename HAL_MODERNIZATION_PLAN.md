@@ -397,11 +397,13 @@ keine zweite No-DVB-Variante erzeugen. Die MACHINE-Vorbereitung liegt in
 Das passende `neutrino-hd/meta-hd51`-BSP liefert jedoch nicht nur eine
 MACHINE-Datei, sondern auch einen gepatchten `linux-gfutures`-Kernel, binäre
 `gfutures-dvb-modules-hd51`- und `hd-v3ddriver-hd51`-Pakete sowie die
-eMMC-/Multiboot-Imageklassen. Das geprüfte BSP deklariert Gatesgarth, während
-dieses Repository Wrynose-Metadaten verwendet. OpenPLi bietet eine neuere
-Scarthgap-Variante mit anderen Provider-Namen. Deshalb verweigert
-`scripts/setup-build hd51` den Start momentan ausdrücklich. Ein Parse- oder
-Imageerfolg wäre ohne eine kompatible Layerbasis irreführend.
+eMMC-/Multiboot-Imageklassen. Das Gatesgarth-BSP bleibt historische
+Vergleichsbasis. Zusätzlich wurde der aktuelle OE-Alliance-6.0-Stand geprüft:
+Sein `meta-brands/meta-gfutures`-Layer deklariert ausdrücklich
+Wrynose-Kompatibilität und liefert die gleichen Provider sowie die
+Multiboot-Imageklasse. Dieser Layer ist nun in `kas/hd51-wrynose.yml` gepinnt.
+Proprietäre DVB-/V3D-Archive werden nicht ins Repository übernommen; Fetches
+und Checksummen sind im HD51-Quellenarchiv erfasst.
 
 Die nächste sichere Reihenfolge ist: BSP-Releasebasis festlegen, Layer und
 Quellen reproduzierbar pinnen, `bitbake -p` und Fetch-Prüfung ausführen, dann

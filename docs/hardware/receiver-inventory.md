@@ -70,14 +70,11 @@ generic HAL build interface with `--with-boxmodel=hd51`; this is compile-time
 preparation only and does not claim support for the proprietary video/OSD
 driver.
 
-The current project manifest is Wrynose, while the complete Neutrino HD51
-layer is Gatesgarth and OpenPLi's alternative layer declares Scarthgap
-compatibility. Mixing those layer generations is unsafe.
-`scripts/setup-build hd51` therefore stops with an explicit diagnostic instead
-of creating a misleading image. A bootable HD51 build requires a separately
-pinned, Wrynose-compatible BSP migration (or a coordinated project migration
-to Gatesgarth/Scarthgap), plus the proprietary kernel module and V3D recipes
-supplied by that BSP.
+The current project manifest is Wrynose. The historical Neutrino HD51 layer
+is Gatesgarth and OpenPLi's alternative layer is Scarthgap, but the current
+OE-Alliance 6.0 `meta-brands/meta-gfutures` layer explicitly supports Wrynose.
+It is now pinned by `kas/hd51-wrynose.yml`. A bootable build still requires
+the proprietary kernel-module and V3D fetches supplied by that BSP.
 
 ## Reusable versus missing Neutrino pieces
 

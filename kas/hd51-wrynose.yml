@@ -1,0 +1,45 @@
+header:
+  version: 14
+machine: hd51
+target:
+  - neutrino-image
+repos:
+  bitbake:
+    url: https://git.openembedded.org/bitbake
+    commit: 33581c84f3a85008239acbd940501a35de48dc91
+    layers: {}
+  openembedded-core:
+    url: https://git.openembedded.org/openembedded-core
+    commit: ef022bf82d79015802309d14c28b13373ebe53f5
+    layers:
+      meta:
+  meta-yocto:
+    url: https://git.yoctoproject.org/meta-yocto
+    commit: 7c25b11156553145fa6b241a2d4f65d94438f804
+    layers:
+      meta-poky:
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    commit: f28a144aa0a0ae05ca2ee91e1aef6aa05f6a12db
+    layers:
+      meta-multimedia:
+      meta-python:
+  oe-alliance:
+    url: https://github.com/oe-alliance/oe-alliance-core.git
+    commit: 9f7fcf3093635182d51cb14c6206c83b36af4d26
+    layers:
+      meta-oe:
+      meta-brands/meta-gfutures:
+  neutrino:
+    # A local repository: kas resolves this to the repository containing this file.
+local_conf_header:
+  reproducibility: |
+    CONF_VERSION = "2"
+    DISTRO = "neutrino"
+    MACHINEBUILD = "mutant51"
+    PACKAGE_CLASSES = "package_ipk"
+    BB_NUMBER_THREADS = "2"
+    PARALLEL_MAKE = "-j2"
+    DL_DIR = "${TOPDIR}/../../.neutrino-build/downloads/hd51"
+    SSTATE_DIR = "${TOPDIR}/../../.neutrino-build/sstate-cache/hd51"
+    LICENSE_FLAGS_ACCEPTED:append = " commercial"

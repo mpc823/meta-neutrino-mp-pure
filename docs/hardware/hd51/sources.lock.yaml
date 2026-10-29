@@ -1,0 +1,38 @@
+schema: 1
+generated: 2026-10-29
+purpose: verified HD51 source revisions and recipe checksums
+repositories:
+  oe-alliance-core:
+    url: https://github.com/oe-alliance/oe-alliance-core.git
+    branch: 6.0
+    revision: 9f7fcf3093635182d51cb14c6206c83b36af4d26
+    path: meta-brands/meta-gfutures
+    license: GPL-2.0 repository; individual recipes retain their own licenses
+    status: verified
+    purpose: Wrynose-compatible HD51 BSP metadata
+  meta-hd51:
+    url: https://github.com/neutrino-hd/meta-hd51.git
+    branch: gatesgarth
+    revision: 260fa831d8a4d523710839f66a2eaa9fa2df24bb
+    license: BSD-2-Clause declared by README; standalone license file not found
+    status: verified-reference-only
+    purpose: historical Neutrino HD51 comparison
+archives:
+  hd51-kernel-arm:
+    recipe: linux-gfutures_4.10.12.bb
+    url: https://source.mynonpublic.com/gfutures/linux-4.10.12-arm.tar.gz
+    sha256: 67a3ac98727595a399d5c399d3b66a7fadbe8136ac517e08decba5ea6964674a
+    license: GPL kernel source; vendor archive provenance requires review
+    status: checksum-from-verified-recipe; not-downloaded
+  hd51-dvb-modules:
+    recipe: gfutures-dvb-modules-hd51.bb
+    url: https://source.mynonpublic.com/gfutures/hd51-drivers-4.10.12-20250429.zip
+    sha256: ab8dc65d8260ddc72e5744ed4a917b40297dbe75ce16efef09c4e8d455d1a613
+    license: proprietary/closed
+    status: checksum-from-verified-recipe; not-downloaded
+  hd51-v3d:
+    recipe: hd-v3ddriver-hd51.bb
+    url: https://source.mynonpublic.com/gfutures/hd51-v3ddriver-20250217.zip
+    sha256: fc06f47c9791c3aea0d696e1c04e2a2af950beca493bcfa563968b94d23d1a19
+    license: proprietary/closed
+    status: checksum-from-verified-recipe; not-downloaded

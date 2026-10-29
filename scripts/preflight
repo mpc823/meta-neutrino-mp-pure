@@ -44,7 +44,16 @@ if [[ "$machine" == hd51 ]]; then
 	else
 		die_check 'HD51 machine contract missing'
 	fi
-	warn_check 'HD51 requires the matching external neutrino-hd/meta-hd51 BSP; no bootable image is claimed by this preflight'
+	if [[ -f "$repo/kas/hd51-wrynose.yml" ]] && rg -q 'commit: 9f7fcf3093635182d51cb14c6206c83b36af4d26' "$repo/kas/hd51-wrynose.yml"; then
+		pass_check 'HD51 Wrynose KAS manifest pins the verified OE-Alliance revision'
+	else
+		die_check 'HD51 Wrynose KAS manifest or OE-Alliance pin missing'
+	fi
+	if [[ -f "$repo/docs/hardware/hd51/sources.lock.yaml" ]] && rg -q 'revision: 9f7fcf3093635182d51cb14c6206c83b36af4d26' "$repo/docs/hardware/hd51/sources.lock.yaml"; then
+		pass_check 'HD51 verified source lock present'
+	else
+		die_check 'HD51 verified source lock missing or inconsistent'
+	fi
 fi
 
 for command in bash git rg patch make cc c++ ar ld readelf file pkg-config python3 df free awk sed; do

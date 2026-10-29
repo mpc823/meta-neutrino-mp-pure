@@ -135,8 +135,12 @@
       Cortex-A15-Tuning und explizitem externem BSP-Vertrag ergänzt.
 - [x] `neutrino-hd/meta-hd51`-BSP (Gatesgarth) und OpenPLi-`meta-gfutures`
       (Scarthgap) verglichen; keine inkompatible Wrynose-Mischung aktiviert.
-- [ ] Wrynose-kompatiblen HD51-BSP-Layer pinnen oder kontrolliert auf die
-      BSP-Releasebasis migrieren; erst danach `MACHINE=hd51` parsen und bauen.
+- [x] OE-Alliance `6.0`/`meta-brands/meta-gfutures` als Wrynose-kompatible
+      BSP-Basis verifiziert, in `kas/hd51-wrynose.yml` gepinnt und im
+      maschinenlesbaren Quellenarchiv erfasst.
+- [ ] HD51-Metadaten mit KAS/BitBake parsen und den ersten `bitbake -k`
+      Cross-Build ausführen; proprietäre Archive bleiben lizenzabhängige
+      externe Fetches.
 - [ ] HD51-HAL für `/proc/stb`, Video/Audio/OSD, Eingabe und HDMI-CEC
       implementieren und auf echter Hardware testen.
 - [ ] Erzeugung eines erhaltenen HD51-eMMC-/Multiboot-Images testen; kein

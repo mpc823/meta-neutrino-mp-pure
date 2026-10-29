@@ -68,10 +68,10 @@ Not ported yet:
 - the legacy DDT Makefile image builder;
 - a kernel or Device Tree without a release-compatible BSP layer.
 
-The next implementation milestone is a Wrynose metadata port of the open
-machine/image definitions, followed by separately authorized integration of
-the closed BSP providers. Until then `scripts/setup-build hd51` must stop
-before BitBake instead of reporting a misleading image build.
+The current implementation milestone is the pinned OE-Alliance Wrynose
+manifest in `kas/hd51-wrynose.yml`. It uses the open machine/image metadata
+and declares the closed BSP providers as explicit external fetches. The first
+BitBake parse and build remain to be run on a host with KAS/BitBake available.
 
 ## References
 

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+default_hal="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/libstb-hal/0.1+git/sources/libstb-hal-0.1+git"
+hal_source="${NEUTRINO_LIBSTB_HAL_SOURCE:-$default_hal}"
+work="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-generic-pc.XXXXXX")"
+trap 'find "$work" -depth -delete' EXIT HUP INT TERM
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+[[ -d "$hal_source/generic-pc" ]] || die "Generic-PC-Quellen fehlen: $hal_source"
+command -v c++ >/dev/null || die "C++-Compiler fehlt"
+command -v cc >/dev/null || die "C-Compiler fehlt"
+command -v patch >/dev/null || die "patch fehlt"
+
+cp -a "$hal_source/." "$work/hal"
+if [[ -f "$work/hal/generic-pc/ffmpeg_compat.h" ]] &&
+   grep -q 'hal_decode_video' "$work/hal/generic-pc/ffmpeg_compat.h"; then
+	:
+else
+	(cd "$work/hal" && patch --fuzz=0 -p1 < "$repo/recipes-neutrino/libstb-hal/libstb-hal/0003-generic-pc-ffmpeg6-compat.patch" >/dev/null)
+fi
+sed -i 's/^#define USE_OPENGL 1/#undef USE_OPENGL/' "$work/hal/config.h"
+
+pkg-config --exists libavformat libavcodec libavutil libswresample libswscale ao \
+  || die "FFmpeg/libao pkg-config-Abhängigkeiten fehlen"
+read -r -a media_cflags <<< "$(pkg-config --cflags libavformat libavcodec libavutil libswresample libswscale ao)"
+common=(-Wall -Wextra -D__STDC_FORMAT_MACROS -D__STDC_CONSTANT_MACROS
+  -I"$work/hal" -I"$work/hal/common" -I"$work/hal/include" "${media_cflags[@]}")
+mkdir "$work/obj"
+for source in dmx.cpp video.cpp audio.cpp init.cpp playback.cpp record.cpp; do
+  c++ -std=c++11 "${common[@]}" -c "$work/hal/generic-pc/$source" \
+    -o "$work/obj/${source%.cpp}.o"
+done
+cc -std=c11 -Wall -Wextra -I"$work/hal" -I"$work/hal/common" -I"$work/hal/include" \
+  -c "$work/hal/generic-pc/hardware_caps.c" -o "$work/obj/hardware_caps.o"
+ar rcs "$work/libgeneric-headless.a" "$work"/obj/*.o
+printf 'PASS: native Generic-PC headless archive built\n'
+printf 'HAL source: %s\n' "$hal_source"
+printf 'Archive: libgeneric-headless.a\n'

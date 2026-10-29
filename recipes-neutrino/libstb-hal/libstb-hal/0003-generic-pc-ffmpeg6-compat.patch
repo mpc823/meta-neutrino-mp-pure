@@ -1,0 +1,148 @@
+Upstream-Status: Pending
+
+--- a/generic-pc/video.cpp
++++ b/generic-pc/video.cpp
+@@ -46,7 +46,11 @@
+ #if USE_CLUTTER
+ #define VDEC_PIXFMT AV_PIX_FMT_BGR24
+ #endif
++#if !USE_OPENGL && !USE_CLUTTER
++#define VDEC_PIXFMT AV_PIX_FMT_RGB32
++#endif
+ 
++#include "ffmpeg_compat.h"
+ #include "video_hal.h"
+ #include "dmx_hal.h"
+ #include "glfb_priv.h"
+@@ -86,7 +90,9 @@
+ 
+ VDec::VDec()
+ {
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
+ 	if (!HAL_nodec)
+ 		dmxbuf = (uint8_t *)malloc(DMX_BUF_SZ);
+ 	bufpos = 0;
+@@ -306,7 +312,7 @@
+ 	AVFormatContext *avfc = NULL;
+ 	AVCodecContext *c = NULL;
+ 	AVCodecParameters *p = NULL;
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AVFrame *frame, *rgbframe;
+ 	AVPacket avpkt;
+ 
+@@ -345,7 +351,7 @@
+ 		lt_info("%s: av_read_frame < 0\n", __func__);
+ 		goto out_free;
+ 	}
+-	len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
++	len = hal_decode_video(c, frame, &got_frame, &avpkt);
+ 	if (len < 0) {
+		lt_info("%s: avcodec_decode_video2 %d\n", __func__, len);
+ 		av_packet_unref(&avpkt);
+@@ -523,11 +529,11 @@
+ void VDec::run(void)
+ {
+ 	lt_info("====================== start decoder thread ================================\n");
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AVCodecParameters *p = NULL;
+ 	AVCodecContext *c= NULL;
+ 	AVFormatContext *avfc = NULL;
+-	AVInputFormat *inp;
++	const AVInputFormat *inp;
+ 	AVFrame *frame, *rgbframe;
+ 	uint8_t *inbuf = (uint8_t *)av_malloc(INBUF_SIZE);
+ 	AVPacket avpkt;
+@@ -604,1 +610,1 @@
+-		int len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
++		int len = hal_decode_video(c, frame, &got_frame, &avpkt);
+@@ -642,1 +648,1 @@
+-				int64_t vpts = av_frame_get_best_effort_timestamp(frame);
++				int64_t vpts = frame->best_effort_timestamp;
+@@ -672,1 +678,1 @@
+-					av_frame_get_best_effort_timestamp(frame));
++					frame->best_effort_timestamp);
+--- a/generic-pc/audio.cpp
++++ b/generic-pc/audio.cpp
+@@ -22,6 +22,7 @@
+ #include <cstdio>
+ #include <cstdlib>
+ 
++#include "ffmpeg_compat.h"
+ #include "audio_hal.h"
+ #include "audio_priv.h"
+ #include "dmx_hal.h"
+@@ -351,11 +352,13 @@
+ {
+ 	lt_info("====================== start decoder thread ================================\n");
+ 	/* libavcodec & friends */
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
+ 
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AVFormatContext *avfc = NULL;
+-	AVInputFormat *inp;
++	const AVInputFormat *inp;
+ 	AVFrame *frame;
+ 	uint8_t *inbuf = (uint8_t *)av_malloc(INBUF_SIZE);
+ 	AVPacket avpkt;
+@@ -467,1 +470,1 @@
+-		avcodec_decode_audio4(c, frame, &gotframe, &avpkt);
++		hal_decode_audio(c, frame, &gotframe, &avpkt);
+@@ -488,1 +491,1 @@
+-			curr_pts = av_frame_get_best_effort_timestamp(frame);
++			curr_pts = frame->best_effort_timestamp;
+--- a/generic-pc/audio_priv.h
++++ b/generic-pc/audio_priv.h
+@@ -21,6 +21,7 @@
+ 
+ extern "C" {
+ #include <libavformat/avformat.h>
++#include <libavcodec/avcodec.h>
+ #include <libavutil/opt.h>
+ #include <libavutil/samplefmt.h>
+ #include <libswresample/swresample.h>
+--- /dev/null
++++ b/generic-pc/ffmpeg_compat.h
+@@ -0,0 +1,36 @@
++#ifndef GENERIC_PC_FFMPEG_COMPAT_H
++#define GENERIC_PC_FFMPEG_COMPAT_H
++
++extern "C" {
++#include <libavcodec/avcodec.h>
++}
++
++static inline int hal_decode_video(AVCodecContext *c, AVFrame *frame,
++ int *got, AVPacket *packet)
++{
++#if LIBAVCODEC_VERSION_MAJOR >= 58
++ int ret = avcodec_send_packet(c, packet);
++ if (ret < 0) { *got = 0; return ret; }
++ ret = avcodec_receive_frame(c, frame);
++ *got = (ret == 0);
++ return ret == 0 ? packet->size : ret;
++#else
++ return avcodec_decode_video2(c, frame, got, packet);
++#endif
++}
++
++static inline int hal_decode_audio(AVCodecContext *c, AVFrame *frame,
++ int *got, AVPacket *packet)
++{
++#if LIBAVCODEC_VERSION_MAJOR >= 58
++ int ret = avcodec_send_packet(c, packet);
++ if (ret < 0) { *got = 0; return ret; }
++ ret = avcodec_receive_frame(c, frame);
++ *got = (ret == 0);
++ return ret == 0 ? packet->size : ret;
++#else
++ return avcodec_decode_audio4(c, frame, got, packet);
++#endif
++}
++
++#endif

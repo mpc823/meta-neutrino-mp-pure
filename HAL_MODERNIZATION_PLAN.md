@@ -102,8 +102,9 @@ Der vorhandene Generic-PC-Code ist kein vollständig isolierter Hostbuild:
   aber ein Dummy-/Diagnosepfad.
 - `generic-pc/video.cpp` benötigt FFmpeg-Entwicklungsheader und
   OpenThreads; `audio.cpp` benötigt zusätzlich libao. `glfb.cpp` benötigt
-  OpenGL/GLUT/GLEW und OpenThreads. Diese Header sind auf dem Host derzeit
-  nicht installiert. Deshalb wird keine vollständige PC-Wiedergabe behauptet.
+  OpenGL/GLUT/GLEW und OpenThreads. Der headless Generic-PC-Zweig baut ohne
+  den optionalen GLFB-Zweig; echte Fenster-/GL-Ausgabe ist damit weiterhin
+  nicht belegt.
 
 Der reproduzierbare erste Testpfad ist:
 
@@ -127,13 +128,16 @@ gemeinsamen Neutrino-Core (`lib/libconfigfile/configfile.cpp` und
 ```sh
 NEUTRINO_CORE_SOURCE=/pfad/zu/neutrino-mp ./scripts/native-x86-headless
 NEUTRINO_SANITIZE=1 ./scripts/native-x86-headless
+./scripts/native-generic-pc
 ```
 
 Der zweite Befehl führt den isolierten Headless-Test zusätzlich mit
-ASan/UBSan aus. Ein vollständiger nativer Generic-PC-Build benötigt weiterhin
-Host-Entwicklungspakete; im geprüften Linux-Mint-System fehlen mindestens die
-Header für FFmpeg 6.1.1, OpenThreads 3.6.5, libao 1.2.2, sigc++ 2.12 und
-Freetype 2.13.2. Die reproduzierbare Installation lautet:
+ASan/UBSan aus. `native-generic-pc` wendet den FFmpeg-Kompatibilitätspatch
+mit `--fuzz=0` in einer temporären Kopie an, kompiliert alle sieben
+Generic-PC-C++-Einheiten plus `hardware_caps.c` und erzeugt ein statisches
+Headless-Archiv. Die Host-Pakete sind auf dem geprüften System installiert:
+FFmpeg 6.1.1, OpenThreads 3.6.5, libao 1.2.2, sigc++ 2.12.1 und Freetype
+2.13.2. Der frühere Installationsbefehl bleibt zur Reproduktion dokumentiert:
 
 ```sh
 sudo apt-get update
@@ -142,9 +146,23 @@ sudo apt-get install libsigc++-2.0-dev libfreetype-dev libpng-dev libjpeg-dev \
   libopenthreads-dev libao-dev liblua5.2-dev
 ```
 
-`sudo -n true` war auf dem Entwicklungsrechner nicht möglich; daher wurden
-keine Systempakete und keine ARM-Sysroot-Header installiert. GLUT/GLEW sind
-für den headless Softwarepfad nicht erforderlich und bleiben bewusst außen vor.
+Die FFmpeg-Anpassung liegt in
+`recipes-neutrino/libstb-hal/libstb-hal/0003-generic-pc-ffmpeg6-compat.patch`.
+Sie betrifft ausschließlich `generic-pc/*`, verwendet für alte FFmpeg-Majors
+weiterhin die historischen Decoderaufrufe und schaltet `av_register_all()` nur
+für alte Versionen frei. Raspberry-Pi-, SH4-, MIPS- und sonstige Legacy-Dateien
+werden nicht verändert. GLUT/GLEW bleiben für den headless Softwarepfad außen
+vor; der produktive OpenGL-Zweig wird nicht entfernt.
+
+## Master-TODO
+
+- [x] Native Generic-PC-Headless-Bibliothek mit FFmpeg 6.1.1 kompilieren.
+- [x] FFmpeg-Kompatibilität versionsabhängig und ausschließlich im Generic-PC-
+      Backend patchen.
+- [x] Headless-, Core- und ASan/UBSan-Tests reproduzierbar ausführen.
+- [ ] Vollständigen Neutrino-Core als native x86-64-Anwendung linken.
+- [ ] Native headless Startsequenz ohne DVB-Gerät und ohne Desktop validieren.
+- [ ] Optionalen OpenGL-Fensterpfad mit installierten GLUT/GLEW-Headern testen.
 
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen

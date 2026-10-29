@@ -83,6 +83,7 @@ SRC_URI = " \
            file://0013-generic-pc-no-dvb-startup.patch \
            file://0014-generic-pc-skip-host-automount.patch \
            file://0015-generic-pc-no-service-startup.patch \
+           file://0016-generic-pc-flush-startup-marker.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

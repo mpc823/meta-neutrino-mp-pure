@@ -34,7 +34,9 @@
 
 - [ ] Vierfachtest der gemeinsamen Generic-PC-Laufzeitmatrix (Fenster/Receiver
       jeweils mit/ohne lokalen Tuner) abschließen; der aktuelle no-DVB-Smoke
-      erreicht den Initialisierungsmarker noch nicht reproduzierbar.
+      erreicht den Initialisierungsmarker trotz weiterlaufendem Prozess noch
+      nicht reproduzierbar. Der Marker ist inzwischen ungepuffert; die weitere
+      Blockade liegt in der Pre-Menu-Initialisierung.
 - [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
       Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
       Backend testen.

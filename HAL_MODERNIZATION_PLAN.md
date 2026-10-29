@@ -287,7 +287,13 @@ nutzbar. Der gemeinsame EIT-Dienst darf starten und idle bleiben; die eigentlich
 DVB-Suche beziehungsweise das Tuning benötigt eine betriebsbereite Quelle.
 `HAVE_GENERIC_HARDWARE` kennzeichnet ausschließlich das
 Generic-PC-HAL/Plattformziel; es erzeugt keine zweite DVB-Programmvariante.
-`NEUTRINO_PC_NO_DVB=0` ist nur ein Test-Override für die Laufzeitprüfung. Die
+`NEUTRINO_PC_NO_DVB=0` ist nur ein Test-Override für die Laufzeitprüfung. Der
+native GUI-Smoke-Marker wird explizit per `fflush(stdout)` veröffentlicht; zuvor
+konnte der Prozess bereits weiterlaufen, während der Marker wegen Datei-
+Pufferung unsichtbar blieb. Die aktuelle Diagnose grenzt einen verbleibenden
+Startstau auf die Pre-Menu-Initialisierung ein; ein Status 130 stammt dabei vom
+kontrollierten Testabbruch, nicht von BitBake oder einem ungeplanten Neutrino-
+Exit. Die
 Receiver-Builds behalten ihre historischen Plattformpfade und erhalten keine
 PC-Sonderlogik.
 

@@ -1,0 +1,7 @@
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2550,1 +2550,2 @@ void CNeutrinoApp::RealRun()
+-	dprintf(DEBUG_NORMAL, "initialized everything\n");
++	printf("[neutrino] initialized everything\n");
++	fflush(stdout);

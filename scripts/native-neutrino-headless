@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+default_hal="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/libstb-hal/0.1+git/sources/libstb-hal-0.1+git"
+default_core="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/neutrino-mp/3.7.1+git/sources/neutrino-mp-3.7.1+git"
+hal_source="${NEUTRINO_LIBSTB_HAL_SOURCE:-$default_hal}"
+core_source="${NEUTRINO_CORE_SOURCE:-$default_core}"
+out_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-headless.XXXXXX")"
+trap 'find "$out_dir" -depth -delete' EXIT HUP INT TERM
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+[[ -d "$hal_source/include" ]] || die "HAL-Quellen fehlen: $hal_source"
+[[ -f "$core_source/lib/libconfigfile/configfile.cpp" ]] || die "Core-Quellen fehlen: $core_source"
+command -v c++ >/dev/null || die "C++-Compiler fehlt"
+
+flags=(-std=c++11 -Wall -Wextra -Werror -D_POSIX_C_SOURCE=200809L
+  -I"$hal_source/include" -I"$core_source/lib/libconfigfile")
+cc -std=c11 -Wall -Wextra -Werror -D_POSIX_C_SOURCE=200809L \
+  -I"$hal_source/include" -c "$core_source/src/driver/abstime.c" \
+  -o "$out_dir/abstime.o"
+c++ "${flags[@]}" -c "$core_source/lib/libconfigfile/configfile.cpp" \
+  -o "$out_dir/configfile.o"
+cc -std=c11 -Wall -Wextra -Werror -I"$hal_source/include" \
+  -c "$hal_source/generic-pc/hardware_caps.c" -o "$out_dir/hardware_caps.o"
+c++ "${flags[@]}" "$repo/tests/native-neutrino-headless.cpp" \
+  "$out_dir/abstime.o" "$out_dir/configfile.o" "$out_dir/hardware_caps.o" \
+  -o "$out_dir/neutrino-headless"
+
+if [[ "${NEUTRINO_SANITIZE:-0}" == 1 ]]; then
+	 cflags=(-std=c11 -Wall -Wextra -Werror -D_POSIX_C_SOURCE=200809L
+	   -I"$hal_source/include" -fsanitize=address,undefined -fno-omit-frame-pointer -g)
+	 cc "${cflags[@]}" -c "$core_source/src/driver/abstime.c" -o "$out_dir/san-abstime.o"
+	 cc "${cflags[@]}" -c "$hal_source/generic-pc/hardware_caps.c" -o "$out_dir/san-hardware_caps.o"
+	 c++ "${flags[@]}" -fsanitize=address,undefined -fno-omit-frame-pointer -g \
+	   "$repo/tests/native-neutrino-headless.cpp" "$core_source/lib/libconfigfile/configfile.cpp" \
+	   "$out_dir/san-abstime.o" "$out_dir/san-hardware_caps.o" \
+	   -o "$out_dir/neutrino-headless-sanitized"
+	 ASAN_OPTIONS=detect_leaks=1 "$out_dir/neutrino-headless-sanitized" --run-ms 50
+fi
+"$out_dir/neutrino-headless" --run-ms "${NEUTRINO_HEADLESS_RUN_MS:-50}"
+printf 'PASS: native Neutrino headless bootstrap built and exited\n'

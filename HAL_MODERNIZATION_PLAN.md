@@ -164,6 +164,21 @@ vor; der produktive OpenGL-Zweig wird nicht entfernt.
 - [ ] Native headless Startsequenz ohne DVB-Gerät und ohne Desktop validieren.
 - [ ] Optionalen OpenGL-Fensterpfad mit installierten GLUT/GLEW-Headern testen.
 
+## Native-Neutrino-Headless-Bootstrap
+
+`./scripts/native-neutrino-headless` baut und startet einen echten kleinen
+Prozess aus `lib/libconfigfile/configfile.cpp`, `src/driver/abstime.c` und
+`generic-pc/hardware_caps.c`. Er prüft Konfigurations-Roundtrip, Generic-PC-
+Capabilities, ein Eingabeereignis über `poll()` sowie kontrollierten Ablauf
+über `timerfd`. Mit `NEUTRINO_SANITIZE=1` wird derselbe Prozess zusätzlich mit
+ASan/UBSan ausgeführt.
+
+Das ist absichtlich kein vollständiger `CNeutrinoApp`-Start: dessen realer
+Einstieg bindet GUI, Zapit, Daemons, DVB, Audio, Framebuffer und zahlreiche
+receiverabhängige Bibliotheken ein. Der aktuelle Bootstrap beweist daher
+Start/Shutdown und gemeinsame Core-/HAL-Bausteine, nicht bereits DVB-,
+Video-, Audio-, OSD- oder vollständige Neutrino-Menüfunktion.
+
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen
 deterministischen Software-OSD-Hash sowie einen headless Eingabeereignistest

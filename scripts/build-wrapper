@@ -77,9 +77,8 @@ target_build_running() {
 
 notify() {
     local title="$1" body="$2"
-    if [[ -n "${NEUTRINO_NOTIFY_LOG:-}" ]]; then
-        printf '%s\t%s\t%s\n' "$(now)" "$title" "$body" >> "$NEUTRINO_NOTIFY_LOG"
-    fi
+    local notification_log="${NEUTRINO_NOTIFY_LOG:-${state_dir}/notifications.log}"
+    printf '%s\t%s\t%s\n' "$(now)" "$title" "$body" >> "$notification_log"
     if [[ -n "${NEUTRINO_NOTIFY_COMMAND:-}" ]]; then
         "$NEUTRINO_NOTIFY_COMMAND" "$title" "$body" || true
     elif command -v notify-send >/dev/null 2>&1; then

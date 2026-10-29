@@ -22,17 +22,19 @@
 - [x] Kontrollierter GUI-Shutdown über `/control/shutdown` sowie
       Tastatureingaben über den produktiven `rcsim`-Event-Socket mit
       `scripts/native-gui-smoke` reproduzierbar getestet.
-- [x] Generic-PC-Betrieb ohne Frontend als eigener Startzustand behandelt:
-      Zapit darf bei fehlender Empfangsquelle nicht mehr den GUI-Start abbrechen;
-      der DVB-EIT/Zeitsuchlauf und historisches Host-Automount werden in diesem
-      PC-Modus nicht gestartet.
+- [x] Gemeinsamen Core für Generic-PC mit und ohne lokales Frontend erhalten:
+      fehlende DVB-Hardware wird zur Laufzeit als Ressourcenstatus behandelt;
+      es gibt keine separate No-DVB-Programmvariante. EIT/Zeitsuche und
+      historisches Host-Automount werden nur bei passenden Laufzeitressourcen
+      beziehungsweise Nicht-PC-Zielen aktiviert.
 - [x] USB-DVB-S2-Frontend PCTV 461e (2013:0258) am Host erkannt; Kernel bindet
       `em28xx`/`em28xx_dvb`/`m88ds3103` und legt die DVB-Geräte an.
 
 ## Offen
 
-- [x] Den vollständigen `CNeutrinoApp`-Stack für Generic-PC ohne DVB-Gerät
-      und Audio-Hardware bis zum laufenden GUI-/OSD-Zustand initialisieren.
+- [ ] Vierfachtest der gemeinsamen Generic-PC-Laufzeitmatrix (Fenster/Receiver
+      jeweils mit/ohne lokalen Tuner) abschließen; der aktuelle no-DVB-Smoke
+      erreicht den Initialisierungsmarker noch nicht reproduzierbar.
 - [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
       Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
       Backend testen.

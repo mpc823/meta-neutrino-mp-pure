@@ -2,21 +2,21 @@ diff --git a/src/neutrino.cpp b/src/neutrino.cpp
 --- a/src/neutrino.cpp
 +++ b/src/neutrino.cpp
 @@ -157,0 +158,3 @@
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
-+static bool generic_pc_no_dvb_mode();
++#if defined(HAVE_GENERIC_HARDWARE)
++static bool generic_pc_no_frontend();
 +#endif
 @@ -1799,0 +1800,5 @@ void CNeutrinoApp::channelsInit(bool bOnly)
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
++#if defined(HAVE_GENERIC_HARDWARE)
 +	const bool generic_pc_has_local_service = (TVchannelList && TVchannelList->getSize() > 0) ||
 +		(RADIOchannelList && RADIOchannelList->getSize() > webradioList.size());
-+	if (!generic_pc_no_dvb_mode() && generic_pc_has_local_service) {
++	if (!generic_pc_no_frontend() && generic_pc_has_local_service) {
 +#endif
 @@ -1801,0 +1805,3 @@ void CNeutrinoApp::channelsInit(bool bOnly)
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
++#if defined(HAVE_GENERIC_HARDWARE)
 +}
 +#endif
 @@ -2054,4 +2054,16 @@ void CNeutrinoApp::InitZapper()
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
++#if defined(HAVE_GENERIC_HARDWARE)
 +	ZapitChannelList generic_pc_web_radio;
 +	CServiceManager::getInstance()->GetAllWebRadioChannels(generic_pc_web_radio);
 +	const bool generic_pc_has_local_service = (TVchannelList && TVchannelList->getSize() > 0) ||
@@ -27,7 +27,7 @@ diff --git a/src/neutrino.cpp b/src/neutrino.cpp
  		tvMode(true);
  	else
  		radioMode(true);
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
++#if defined(HAVE_GENERIC_HARDWARE)
 +	} else {
 +		dprintf(DEBUG_NORMAL, "No local service list; keeping Generic-PC GUI in idle mode.\\n");
 +	}

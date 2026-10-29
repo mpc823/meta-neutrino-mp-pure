@@ -2,8 +2,8 @@ diff --git a/src/neutrino.cpp b/src/neutrino.cpp
 --- a/src/neutrino.cpp
 +++ b/src/neutrino.cpp
 @@ -2028,0 +2029,16 @@
-+#ifdef NEUTRINO_GENERIC_PC_NO_DVB
-+static bool generic_pc_no_dvb_mode()
++#ifdef HAVE_GENERIC_HARDWARE
++static bool generic_pc_no_frontend()
 +{
 +	const char *override = getenv("NEUTRINO_PC_NO_DVB");
 +	if (override)
@@ -19,9 +19,9 @@ diff --git a/src/neutrino.cpp b/src/neutrino.cpp
 +}
 +#endif
 @@ -2039,0 +2040,13 @@ void CNeutrinoApp::InitZapper()
-+#ifdef NEUTRINO_GENERIC_PC_NO_DVB
-+	if (generic_pc_no_dvb_mode()) {
-+		/* Keep the GUI and web/streaming menus usable without a tuner. */
++#ifdef HAVE_GENERIC_HARDWARE
++	if (generic_pc_no_frontend()) {
++		/* Keep the common core and GUI usable without a local tuner. */
 +		g_InfoViewer->start();
 +		lastChannelMode = g_settings.channel_mode;
 +		mode = NeutrinoModes::mode_tv;
@@ -32,21 +32,15 @@ diff --git a/src/neutrino.cpp b/src/neutrino.cpp
 +	}
 +#endif
 +
-@@ -2365,0 +2379,4 @@ TIMER_START();
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
-+	if (!generic_pc_no_dvb_mode())
-+		CEitManager::getInstance()->Start();
-+#else
-@@ -2366,0 +2384 @@ TIMER_START();
-+#endif
-@@ -2379 +2397,7 @@ TIMER_START();
+@@ -2379,2 +2393,9 @@ TIMER_START();
 -	/* later on, we'll crash anyway, so tell about it. */
-+#if defined(NEUTRINO_GENERIC_PC_NO_DVB)
-+	/* A no-DVB PC run reports missing hardware through capabilities/logs, not
-+	 * by hiding the desktop behind a fatal startup dialog. */
-+	if (! zapit_init && !generic_pc_no_dvb_mode())
+-	if (! zapit_init)
++#if defined(HAVE_GENERIC_HARDWARE)
++	/* Missing local hardware is a runtime capability state, not a fatal GUI error. */
++	if (! zapit_init && !generic_pc_no_frontend())
 +		DisplayErrorMessage("Zapit initialization failed. This is a fatal error, sorry.");
 +#else
 +	/* Receiver targets retain the historical fatal diagnostic. */
-@@ -2381,0 +2406 @@ TIMER_START();
++	if (! zapit_init)
++		DisplayErrorMessage("Zapit initialization failed. This is a fatal error, sorry.");
 +#endif

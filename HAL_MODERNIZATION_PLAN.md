@@ -281,13 +281,15 @@ Audio auf dem PC.
 `CZapit::Start()` benötigt für den historischen Live-Pfad ein Frontend. Ohne
 `/dev/dvb/adapter*/frontend0` liefert der Frontend-Manager `false`; das war die
 konkrete Ursache des früheren fatalen Dialogs, nicht ein fehlender Zapit- oder
-HTTP-Socket. Der Generic-PC-Pfad behandelt diesen Zustand mit
-`NEUTRINO_GENERIC_PC_NO_DVB` und `generic_pc_no_dvb_mode()` als fehlende
-Empfangsquelle: GUI, OSD, Timer, HTTP und `CStreamManager` bleiben nutzbar,
-während EIT/DVB-Zeitsuche und historisches Receiver-Automount entfallen.
-Ein gesetztes `NEUTRINO_PC_NO_DVB=0` erzwingt den lokalen Tunerpfad; ohne
-Override wird das Vorhandensein eines Frontends unter `adapter0` bis `adapter15`
-geprüft. Receiver-Builds ohne dieses Makro behalten ihr bisheriges Verhalten.
+HTTP-Socket. Der gemeinsame Core behandelt diesen Zustand zur Laufzeit als
+fehlende Empfangsquelle: GUI, OSD, Timer, HTTP und `CStreamManager` bleiben
+nutzbar. Der gemeinsame EIT-Dienst darf starten und idle bleiben; die eigentliche
+DVB-Suche beziehungsweise das Tuning benötigt eine betriebsbereite Quelle.
+`HAVE_GENERIC_HARDWARE` kennzeichnet ausschließlich das
+Generic-PC-HAL/Plattformziel; es erzeugt keine zweite DVB-Programmvariante.
+`NEUTRINO_PC_NO_DVB=0` ist nur ein Test-Override für die Laufzeitprüfung. Die
+Receiver-Builds behalten ihre historischen Plattformpfade und erhalten keine
+PC-Sonderlogik.
 
 Der Entwicklungs-PC erkennt den PCTV Systems DVB-S2 Stick 461e (`2013:0258`)
 über `em28xx`, `em28xx_dvb` und `m88ds3103`; die Kernelgeräte existieren. Die

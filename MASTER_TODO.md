@@ -110,11 +110,29 @@
 
 ## Host-Abhängigkeiten und Nachweise
 
+- [x] `scripts/preflight` mit Quick-, Full- und Fetch-Prüfung für native
+      Werkzeuge, Bibliotheken, Python/KAS, Layer, Rezepte, Ressourcen und
+      Yocto-Metadaten ergänzt.
+- [x] `scripts/bootstrap-ubuntu-24.04` für einen reproduzierbaren Ubuntu-
+      24.04-Hostbootstrap ergänzt; die Ausführung in einer wirklich frischen
+      VM/Clean-Room-Umgebung bleibt ausdrücklich offen.
+- [x] BitBake-Metadatenparse und Fetch-/Checksum-Prüfung mit vorhandenen
+      Raspberry-Pi-2-Quellen erfolgreich durchgeführt; kein Image-Build dabei.
+- [x] Native GUI-Smoke-Test prüft zusätzlich `getchannel` und `getbouquets`
+      über HTTP mit JSON/HTTP 200.
+
 - [x] `libcurl4-openssl-dev`, `libpugixml-dev`, `libgif-dev`, `freeglut3-dev`
       und `libglew-dev` mit `pkg-config`/Headerproben bestätigt.
 - [x] Der native Link verwendet ausschließlich Host-Bibliotheken und einen
       separat gebauten x86-64-`libstb-hal`-Anteil; Yocto-ARM-Artefakte wurden
       durch die zentrale Architekturprüfung ausgeschlossen.
+
+## Zukünftige Plattformen
+
+- [ ] AX/Mut@nt HD51 als mögliches späteres HAL-/BSP-Ziel untersuchen; noch
+      keine aktive Portierung oder Firmwareänderung.
+- [ ] NVIDIA Shield TV als mögliches späteres HAL-Ziel untersuchen; noch
+      keine aktive Portierung oder Firmwareänderung.
 
 Der Bootstrap bleibt ein isolierter Core-/HAL-Testprozess. Zusätzlich ist der
 vollständige native `neutrino`-Link nun bis zum echten CNeutrinoApp-GUI-Start

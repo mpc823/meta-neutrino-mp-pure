@@ -75,6 +75,12 @@ for _ in {1..20}; do
 	sleep 0.25
 done
 [[ -S /tmp/neutrino.sock ]] || { tail -120 "$log" >&2; die 'Neutrino-Event-Socket wurde nicht angelegt'; }
+for endpoint in getchannel getbouquets; do
+	api_status="$(curl --connect-timeout 1 --max-time 3 -sS -o "$run_dir/${endpoint}.json" \
+		-w '%{http_code}' "http://127.0.0.1:${web_port}/control/${endpoint}?format=json" 2>/dev/null || true)"
+	[[ "$api_status" == 200 ]] || { tail -120 "$log" >&2; die "HTTP-Control-Endpunkt ${endpoint} antwortete mit HTTP ${api_status}"; }
+done
+printf 'HTTP: getchannel/getbouquets antworten mit JSON und HTTP 200\n'
 "$rcsim" KEY_MENU
 sleep 0.5
 if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then

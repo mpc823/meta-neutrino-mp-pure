@@ -349,6 +349,33 @@ Fenster mit `xwininfo`/`xwd` auf und prüft XWD-Format, Fenstername, Auflösung
 und eine plausible Dateigröße. Damit ist die sichtbare X11-Fensterausgabe
 getrennt von bloßen Startmarkern nachweisbar; die temporäre Aufnahme bleibt
 außerhalb des Git-Arbeitsbaums.
+
+## Preflight und Clean-Room-Reproduzierbarkeit
+
+`scripts/preflight --quick` prüft Werkzeuge, native pkg-config-Module,
+Python/YAML, KAS-Pins, Layerregeln, lokale `SRC_URI`-Dateien sowie Speicher,
+Inodes, RAM und Swap. `--full` initialisiert zusätzlich die vorhandene
+Yocto-Quelle und führt `bitbake -p neutrino-image` aus; `--fetch` ergänzt
+`bitbake -c fetch neutrino-image` einschließlich Prüfsummen-/Fetchprüfung.
+Die Prüfung verändert keine Quelltexte und startet keinen Build.
+
+`scripts/bootstrap-ubuntu-24.04 [--install]` dokumentiert beziehungsweise
+installiert die Ubuntu-24.04-Hostpakete, erzeugt eine isolierte KAS-Python-
+Umgebung und startet anschließend den vollständigen Preflight. Eine echte
+frische Ubuntu-VM beziehungsweise ein Clean-Room-Image wurde auf dem
+Entwicklungs-PC noch nicht ausgeführt; der aktuelle Nachweis stammt daher
+weiterhin von Linux Mint 22.3 und ist kein Clean-Room-Buildnachweis.
+
+Die Native-PC-Smoke-Prüfung deckt nun neben X11-Fenster, OSD, Eingaben und
+Shutdown auch die hardwareunabhängigen HTTP-Endpunkte `getchannel` und
+`getbouquets` ab. Ohne lokalen Tuner werden dabei keine Empfangsfunktionen
+vorgetäuscht.
+
+## Zukünftige Plattformen
+
+AX/Mut@nt HD51 und NVIDIA Shield TV sind als mögliche spätere HAL-Ziele
+vorgemerkt. Es existieren dafür weder aktive MACHINE-Konfigurationen noch
+Portierungen oder Firmwareänderungen.
 Die `m88ds3103c`-Datei (16384 Bytes) gehört zu einer anderen Chiprevision und
 wird für USB-ID `2013:0258` nicht verwendet.
 

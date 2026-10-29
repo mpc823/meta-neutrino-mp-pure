@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+venv="${NEUTRINO_KAS_VENV:-${repo}/../.neutrino-kas-venv}"
+install=0
+[[ "${1:-}" == --install ]] && install=1
+
+if [[ -r /etc/os-release ]]; then
+	. /etc/os-release
+	[[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04* ]] ||
+		printf 'WARN: expected Ubuntu 24.04, found %s %s\n' "${ID:-unknown}" "${VERSION_ID:-unknown}" >&2
+else
+	printf 'WARN: /etc/os-release unavailable; Ubuntu version not verified\n' >&2
+fi
+
+packages=(git ca-certificates build-essential curl file patch pkg-config python3
+	python3-venv python3-pip python3-yaml gcc g++ make diffutils rsync cpio
+	chrpath socat zstd lz4 xz-utils bmap-tools util-linux psmisc)
+if ((install)); then
+	sudo apt-get update
+	sudo apt-get install -y "${packages[@]}"
+else
+	printf 'Install command (not executed):\n  sudo apt-get update && sudo apt-get install -y %s\n' "${packages[*]}"
+fi
+
+if [[ ! -x "$venv/bin/python" ]]; then
+	python3 -m venv "$venv"
+fi
+"$venv/bin/python" -m pip install --upgrade pip
+"$venv/bin/python" -m pip install kas
+printf 'KAS environment: %s\n' "$venv"
+PATH="$venv/bin:$PATH" "$repo/scripts/preflight" --full
+printf 'Bootstrap preparation complete. Start a build only after reviewing preflight output.\n'

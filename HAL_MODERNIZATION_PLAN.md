@@ -394,13 +394,14 @@ keine zweite No-DVB-Variante erzeugen. Die MACHINE-Vorbereitung liegt in
 `conf/machine/hd51.conf`, die generische HAL-Auswahl wird mit dem Boxmodell
 `hd51` vorbereitet.
 
-Das passende OpenPLi-`meta-gfutures`-BSP liefert jedoch nicht nur eine
-MACHINE-Datei, sondern auch einen gepatchten `linux-hd`-Kernel, binäre
-`hd-dvb-modules-hd51`- und `hd-v3ddriver-hd51`-Pakete sowie die eMMC-/Multiboot-
-Imageklassen. Das geprüfte BSP deklariert Scarthgap, während dieses Repository
-Wrynose-Metadaten verwendet. Deshalb verweigert `scripts/setup-build hd51`
-den Start momentan ausdrücklich. Ein Parse- oder Imageerfolg wäre ohne eine
-kompatible Layerbasis irreführend.
+Das passende `neutrino-hd/meta-hd51`-BSP liefert jedoch nicht nur eine
+MACHINE-Datei, sondern auch einen gepatchten `linux-gfutures`-Kernel, binäre
+`gfutures-dvb-modules-hd51`- und `hd-v3ddriver-hd51`-Pakete sowie die
+eMMC-/Multiboot-Imageklassen. Das geprüfte BSP deklariert Gatesgarth, während
+dieses Repository Wrynose-Metadaten verwendet. OpenPLi bietet eine neuere
+Scarthgap-Variante mit anderen Provider-Namen. Deshalb verweigert
+`scripts/setup-build hd51` den Start momentan ausdrücklich. Ein Parse- oder
+Imageerfolg wäre ohne eine kompatible Layerbasis irreführend.
 
 Die nächste sichere Reihenfolge ist: BSP-Releasebasis festlegen, Layer und
 Quellen reproduzierbar pinnen, `bitbake -p` und Fetch-Prüfung ausführen, dann

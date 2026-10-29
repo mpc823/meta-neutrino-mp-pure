@@ -37,9 +37,11 @@ authorization.
 
 The OpenPLi machine definition confirms the intended HD51 BSP contract:
 Linux 4.10.12, `bcm7251s`, `cortexa15hf-neon-vfpv4`, and an eMMC multiboot
-image class.  The matching external layer is `meta-gfutures`; its current
-source revision inspected for this inventory is
-`3256ee6f239a89e57d24153e06361643bd5d3441`.
+image class.  The matching Neutrino-oriented layer is `meta-hd51`; its
+inspected Gatesgarth revision is
+`260fa831d8a4d523710839f66a2eaa9fa2df24bb`. OpenPLi's newer Scarthgap
+`meta-gfutures` implementation was cross-checked separately; the release
+bases must not be mixed.
 
 ## DVB, video, audio and OSD interfaces
 
@@ -68,13 +70,14 @@ generic HAL build interface with `--with-boxmodel=hd51`; this is compile-time
 preparation only and does not claim support for the proprietary video/OSD
 driver.
 
-The current project manifest is Wrynose, while the inspected OpenPLi
-`meta-gfutures` layer declares Scarthgap compatibility.  Mixing those layer
-generations is unsafe.  `scripts/setup-build hd51` therefore stops with an
-explicit diagnostic instead of creating a misleading image.  A bootable HD51
-build requires a separately pinned, Wrynose-compatible BSP migration (or a
-coordinated project migration to the BSP's release), plus the proprietary
-kernel module and V3D recipes supplied by that BSP.
+The current project manifest is Wrynose, while the complete Neutrino HD51
+layer is Gatesgarth and OpenPLi's alternative layer declares Scarthgap
+compatibility. Mixing those layer generations is unsafe.
+`scripts/setup-build hd51` therefore stops with an explicit diagnostic instead
+of creating a misleading image. A bootable HD51 build requires a separately
+pinned, Wrynose-compatible BSP migration (or a coordinated project migration
+to Gatesgarth/Scarthgap), plus the proprietary kernel module and V3D recipes
+supplied by that BSP.
 
 ## Reusable versus missing Neutrino pieces
 
@@ -88,7 +91,8 @@ Still required for real HD51 operation:
 
 - an HD51 HAL backend for vendor `/proc/stb`, framebuffer/OSD, audio/video
   decoder control and remote input;
-- the matching `linux-hd` source/configuration and `hd-dvb-modules-hd51`;
+- the matching `linux-gfutures` source/configuration and
+  `gfutures-dvb-modules-hd51` from the Gatesgarth BSP;
 - the proprietary `hd-v3ddriver-hd51`/Nexus EGL stack;
 - image generation for the HD51 eMMC/multiboot layout;
 - real hardware tests with a preserved recovery path.

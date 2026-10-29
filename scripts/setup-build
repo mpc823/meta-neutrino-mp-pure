@@ -11,7 +11,7 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 case "$machine" in
   raspberrypi2) ;;
   hd51)
-    die "hd51 is experimental: provide the matching OpenPLi meta-gfutures BSP (commit 3256ee6f239a89e57d24153e06361643bd5d3441) and a Wrynose-compatible layer stack before building" ;;
+    die "hd51 is experimental: provide the matching neutrino-hd/meta-hd51 BSP (commit 260fa831d8a4d523710839f66a2eaa9fa2df24bb) and a Wrynose-compatible layer stack before building" ;;
   *) die "the Wrynose bootstrap currently defines raspberrypi2; add a machine-specific KAS config for $machine" ;;
 esac
 mkdir -p "$build_root" "$build_dir"

@@ -44,7 +44,7 @@ if [[ "$machine" == hd51 ]]; then
 	else
 		die_check 'HD51 machine contract missing'
 	fi
-	warn_check 'HD51 requires the matching external OpenPLi meta-gfutures BSP; no bootable image is claimed by this preflight'
+	warn_check 'HD51 requires the matching external neutrino-hd/meta-hd51 BSP; no bootable image is claimed by this preflight'
 fi
 
 for command in bash git rg patch make cc c++ ar ld readelf file pkg-config python3 df free awk sed; do

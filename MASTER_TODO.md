@@ -133,8 +133,8 @@
       ARMv7, Linux 4.10.12, eMMC-Multiboot, DVB-/`/proc/stb`-Schnittstellen.
 - [x] Experimentelle `conf/machine/hd51.conf` mit verifiziertem
       Cortex-A15-Tuning und explizitem externem BSP-Vertrag ergänzt.
-- [x] OpenPLi-`meta-gfutures`-BSP und proprietäre Kernel-/DVB-/V3D-Abhängigkeiten
-      geprüft; keine inkompatible Wrynose/Scarthgap-Mischung aktiviert.
+- [x] `neutrino-hd/meta-hd51`-BSP (Gatesgarth) und OpenPLi-`meta-gfutures`
+      (Scarthgap) verglichen; keine inkompatible Wrynose-Mischung aktiviert.
 - [ ] Wrynose-kompatiblen HD51-BSP-Layer pinnen oder kontrolliert auf die
       BSP-Releasebasis migrieren; erst danach `MACHINE=hd51` parsen und bauen.
 - [ ] HD51-HAL für `/proc/stb`, Video/Audio/OSD, Eingabe und HDMI-CEC

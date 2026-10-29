@@ -385,6 +385,29 @@ IPTV. Ein Remote-Tuner mit Erkennung, Capability-Austausch, Reservierung,
 Transportstream und Reconnect ist ein separater späterer Meilenstein und wird
 hier zunächst nur architektonisch vorgemerkt.
 
+## HD51-BSP-Befund
+
+Das reale Gerät `hd51` ist ein Broadcom-`bcm7251s`-Receiver mit ARMv7 und
+Linux 4.10.12. Die vorhandene gemeinsame HAL und der Neutrino-Core bleiben
+die Integrationsbasis; ein fehlender lokaler oder proprietärer Treiber darf
+keine zweite No-DVB-Variante erzeugen. Die MACHINE-Vorbereitung liegt in
+`conf/machine/hd51.conf`, die generische HAL-Auswahl wird mit dem Boxmodell
+`hd51` vorbereitet.
+
+Das passende OpenPLi-`meta-gfutures`-BSP liefert jedoch nicht nur eine
+MACHINE-Datei, sondern auch einen gepatchten `linux-hd`-Kernel, binäre
+`hd-dvb-modules-hd51`- und `hd-v3ddriver-hd51`-Pakete sowie die eMMC-/Multiboot-
+Imageklassen. Das geprüfte BSP deklariert Scarthgap, während dieses Repository
+Wrynose-Metadaten verwendet. Deshalb verweigert `scripts/setup-build hd51`
+den Start momentan ausdrücklich. Ein Parse- oder Imageerfolg wäre ohne eine
+kompatible Layerbasis irreführend.
+
+Die nächste sichere Reihenfolge ist: BSP-Releasebasis festlegen, Layer und
+Quellen reproduzierbar pinnen, `bitbake -p` und Fetch-Prüfung ausführen, dann
+den gemeinsamen Core und die HD51-HAL bauen. Erst danach folgen Hardwaretests
+über einen erhaltenen Multiboot-Slot. Es wurden keine proprietären Dateien,
+Passwörter oder Receiveränderungen in das Projekt übernommen.
+
 Der reproduzierbare Test `scripts/native-gui-smoke` verlangt eine installierte
 Full-Core-Binary in `NEUTRINO_NATIVE_BIN`, prüft deren x86-64-ELF sowie `rcsim`
 mit der zentralen Architekturprüfung, validiert die OpenGL/X11-Anzeige, startet

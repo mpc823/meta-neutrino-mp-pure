@@ -127,6 +127,21 @@
       separat gebauten x86-64-`libstb-hal`-Anteil; Yocto-ARM-Artefakte wurden
       durch die zentrale Architekturprüfung ausgeschlossen.
 
+## HD51-Hardwareplattform
+
+- [x] Reales Gerät rein lesend inventarisiert: Mut@nt HD51, `bcm7251s`,
+      ARMv7, Linux 4.10.12, eMMC-Multiboot, DVB-/`/proc/stb`-Schnittstellen.
+- [x] Experimentelle `conf/machine/hd51.conf` mit verifiziertem
+      Cortex-A15-Tuning und explizitem externem BSP-Vertrag ergänzt.
+- [x] OpenPLi-`meta-gfutures`-BSP und proprietäre Kernel-/DVB-/V3D-Abhängigkeiten
+      geprüft; keine inkompatible Wrynose/Scarthgap-Mischung aktiviert.
+- [ ] Wrynose-kompatiblen HD51-BSP-Layer pinnen oder kontrolliert auf die
+      BSP-Releasebasis migrieren; erst danach `MACHINE=hd51` parsen und bauen.
+- [ ] HD51-HAL für `/proc/stb`, Video/Audio/OSD, Eingabe und HDMI-CEC
+      implementieren und auf echter Hardware testen.
+- [ ] Erzeugung eines erhaltenen HD51-eMMC-/Multiboot-Images testen; kein
+      Flashen ohne gesonderte Freigabe.
+
 ## Zukünftige Plattformen
 
 - [ ] AX/Mut@nt HD51 als mögliches späteres HAL-/BSP-Ziel untersuchen; noch

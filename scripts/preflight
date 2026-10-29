@@ -38,6 +38,15 @@ done
 printf 'Neutrino preflight: mode=%s machine=%s target=%s\n' "$mode" "$machine" "$target"
 printf 'Repository: %s\n' "$repo"
 
+if [[ "$machine" == hd51 ]]; then
+	if [[ -f "$repo/conf/machine/hd51.conf" ]]; then
+		pass_check 'HD51 machine contract present'
+	else
+		die_check 'HD51 machine contract missing'
+	fi
+	warn_check 'HD51 requires the matching external OpenPLi meta-gfutures BSP; no bootable image is claimed by this preflight'
+fi
+
 for command in bash git rg patch make cc c++ ar ld readelf file pkg-config python3 df free awk sed; do
 	have "$command" && pass_check "tool $command: $(command -v "$command")" || die_check "required tool missing: $command"
 done

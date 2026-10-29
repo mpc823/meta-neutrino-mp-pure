@@ -72,6 +72,7 @@ EXTRA_OECONF += "\
 EXTRA_OECONF:append:spark = "--with-boxtype=spark"
 EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
 EXTRA_OECONF:append:raspberrypi2 = "--with-boxtype=generic --with-boxmodel=raspi"
+EXTRA_OECONF:append:hd51 = " --with-boxtype=generic --with-boxmodel=hd51"
 EXTRA_OECONF:append:raspberrypi = " --disable-clutter"
 EXTRA_OECONF:append:raspberrypi2 = " --disable-clutter"
 EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"

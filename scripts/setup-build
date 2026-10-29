@@ -7,9 +7,15 @@ build_dir="${build_root}/${machine}"
 source_dir="${build_root}/sources/${machine}"
 hosttools="${NEUTRINO_HOSTTOOLS:-${repo}/../../.neutrino-hosttools/root/usr/bin}"
 hostlib="${NEUTRINO_HOSTLIB:-${repo}/../../.neutrino-hosttools/root/usr/lib/x86_64-linux-gnu}"
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+case "$machine" in
+  raspberrypi2) ;;
+  hd51)
+    die "hd51 is experimental: provide the matching OpenPLi meta-gfutures BSP (commit 3256ee6f239a89e57d24153e06361643bd5d3441) and a Wrynose-compatible layer stack before building" ;;
+  *) die "the Wrynose bootstrap currently defines raspberrypi2; add a machine-specific KAS config for $machine" ;;
+esac
 mkdir -p "$build_root" "$build_dir"
 mkdir -p "$source_dir"
-die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 command -v kas >/dev/null || die "kas is required (install it in a Python virtualenv)"
 command -v git >/dev/null || die "git is required"
 command -v rg >/dev/null || die "rg is required"
@@ -19,10 +25,6 @@ fi
 if [ -d "$hostlib" ]; then
   export LD_LIBRARY_PATH="$hostlib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
-case "$machine" in
-  raspberrypi2) ;;
-  *) die "the Wrynose bootstrap currently defines raspberrypi2; add a machine-specific KAS config for $machine" ;;
-esac
 printf 'Build root: %s\nMachine:    %s\n' "$build_root" "$machine"
 printf 'NOTE: layer commits are pinned in kas/wrynose.yml; run scripts/lock-revisions to emit an auditable lockfile.\n'
 export KAS_BUILD_DIR="$build_dir"

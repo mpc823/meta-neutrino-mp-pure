@@ -132,8 +132,8 @@ Der vorhandene Generic-PC-Code ist kein vollständig isolierter Hostbuild:
 - `generic-pc/video.cpp` benötigt FFmpeg-Entwicklungsheader und
   OpenThreads; `audio.cpp` benötigt zusätzlich libao. `glfb.cpp` benötigt
   OpenGL/GLUT/GLEW und OpenThreads. Der headless Generic-PC-Zweig baut ohne
-  den optionalen GLFB-Zweig; echte Fenster-/GL-Ausgabe ist damit weiterhin
-  nicht belegt.
+  den optionalen GLFB-Zweig; der separate Full-Core-GUI-Smoke-Test deckt den
+  produktiven GLFB-/OpenGL-Pfad auf dem X11-Host ab.
 
 Der reproduzierbare erste Testpfad ist:
 
@@ -192,7 +192,9 @@ wird dadurch nicht ersetzt.
       Backend patchen.
 - [x] Headless-, Core- und ASan/UBSan-Tests reproduzierbar ausführen.
 - [x] Vollständigen Neutrino-Core als native x86-64-Anwendung linken.
-- [ ] Native headless Startsequenz ohne DVB-Gerät und ohne Desktop validieren.
+- [x] Native GUI-Startsequenz ohne DVB-Gerät mit isoliertem Zustand und
+      kontrolliertem Shutdown validieren; der separate headless Bootstrap
+      bleibt weiterhin erhalten.
 - [x] Native pugixml-Compilerprobe und reproduzierbare Syntaxprobe des echten
       `src/neutrino.cpp`-Einstiegs ergänzen.
 - [x] Native libcurl-Entwicklungsabhängigkeit und Configure-Pfad prüfen.
@@ -223,7 +225,7 @@ mit Version 1.14 verifiziert. `scripts/native-cneutrino-syntax` wiederholt
 diese Prüfung reproduzierbar und verwendet dabei ausschließlich Host-Header;
 die ARM-Yocto-Sysroot wird nicht verwendet. Ein vollständiger
 CNeutrinoApp-Headlessstart ist deshalb weiterhin nicht erreicht und wird nicht
-behauptet.
+behauptet; der GUI-Start ist davon getrennt unter X11 verifiziert.
 
 Der native Configure-Pfad verwendet inzwischen `libcurl4-openssl-dev` und
 `libpugixml-dev`; beide sind per pkg-config und Compilerprobe verifiziert.
@@ -245,8 +247,9 @@ Bewusst getrennte Statusklassen:
    laufen erfolgreich.
 3. **Video/Audio funktional:** aktuell nicht belegt; dafür fehlen Host-
    Entwicklungsheader und echte Medien-/Audioausgabe.
-4. **Grafikausgabe/Hardwarebeschleunigung:** nicht getestet; es gibt keinen
-   Desktop- oder DRM/KMS-Startpfad.
+4. **Grafikausgabe/Hardwarebeschleunigung:** OpenGL/GLUT/GLEW-GLFB und OSD
+   sind unter X11 gestartet; DRM/KMS sowie echte Receiver-Hardware bleiben
+   ungetestet.
 
 Das native Full-Core-Buildziel ist gelinkt; der kontrollierte Programmstart
 erreicht die echte HAL-/OpenGL-Initialisierung. Ohne `DISPLAY` beendet GLUT den
@@ -263,6 +266,24 @@ Die Raspberry-Pi-2-Regression `bitbake -k -c compile neutrino-mp libstb-hal`
 lief mit Exitcode 0 durch. Die FFmpeg-Kompatibilität verwendet für historische
 Toolchains versionsabhängige `AVCodec`- und `AVOutputFormat`-Typen; der
 OpenMAX-/Legacy-Pfad bleibt unverändert.
+
+## Native GUI-Startstufe
+
+Der native Full-Core ist inzwischen tatsächlich bis zum GUI-Zustand gestartet:
+GLFB initialisiert den OpenGL/OSD-Puffer, Neutrino lädt Fonts und Logo,
+`rcsim` liefert Menü-/Exit-Eingaben über den produktiven Event-Socket und
+`/control/shutdown` beendet die Anwendung regulär. Das ist ein echter
+`CNeutrinoApp`-Lauf, aber noch kein Nachweis für DVB-Tuner, Live-Video oder
+Audio auf dem PC.
+
+Der reproduzierbare Test `scripts/native-gui-smoke` verlangt eine installierte
+Full-Core-Binary in `NEUTRINO_NATIVE_BIN`, prüft deren x86-64-ELF sowie `rcsim`
+mit der zentralen Architekturprüfung, validiert die OpenGL/X11-Anzeige, startet
+mit isoliertem HOME/XDG-Zustand, sendet `KEY_MENU` und `KEY_EXIT` und fordert
+anschließend den vorhandenen HTTP-Control-Endpunkt `/control/shutdown` an.
+Ein Exitcode kleiner 128 zusammen mit GL-Thread- und Streaming-Shutdown gilt
+als kontrolliertes Beenden; der native Prozess liefert dabei aktuell Exitcode 1
+aus `ExitRun(1)`, was kein Signalabbruch ist.
 
 ## Testkriterien
 

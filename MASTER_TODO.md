@@ -17,16 +17,26 @@
 - [x] Native OpenGL-Full-Core-Linkzeile reproduzierbar mit Make-Variablen
       ausgeführt; x86-64-ELF-Prüfung und kontrollierter Display-Fehlerfall
       verifiziert.
+- [x] Echter nativer CNeutrinoApp-GUI-Start auf dem vorhandenen X11-Display
+      mit Generic-PC-HAL, OpenGL/GLUT/GLEW, OSD und Font-/Logo-Ressourcen.
+- [x] Kontrollierter GUI-Shutdown über `/control/shutdown` sowie
+      Tastatureingaben über den produktiven `rcsim`-Event-Socket mit
+      `scripts/native-gui-smoke` reproduzierbar getestet.
 
 ## Offen
 
-- [ ] Den vollständigen `CNeutrinoApp`-Stack für Generic-PC ohne DVB-Gerät,
-      Audio-Hardware und Display initialisieren.
+- [x] Den vollständigen `CNeutrinoApp`-Stack für Generic-PC ohne DVB-Gerät
+      und Audio-Hardware bis zum laufenden GUI-/OSD-Zustand initialisieren.
+- [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
+      Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
+      Backend testen.
 - [ ] Receiver-unabhängigen Headless-Framebuffer und echte Neutrino-
       Nachrichten-/Timer-Schnittstelle integrieren.
 - [ ] Native Senderlisten-/Zapit-Konfiguration ohne Hardware testen.
-- [ ] Optionalen OpenGL-Fensterpfad unter einem echten X-Server/Xvfb und echte
-      Video-/Audio-Wiedergabe testen; der Link ist abgeschlossen.
+- [x] Optionalen OpenGL-Fensterpfad unter dem vorhandenen X11-Server mit
+      automatisiertem Start-/Eingabe-/Shutdown-Smoke-Test validieren.
+- [ ] OpenGL-Fensterpfad zusätzlich unter Xvfb validieren, sobald Xvfb auf dem
+      Host verfügbar ist; echte Video-/Audio-Wiedergabe bleibt offen.
 - [ ] Native Startumgebung ohne X-Server als separaten Headless-Framebuffer
       ausführen; das gelinkte GUI-Programm meldet ohne `DISPLAY` korrekt den
       fehlenden Displayzugang.
@@ -53,8 +63,9 @@
       reproduzierbare Syntaxprobe für den produktiven Einstieg dokumentiert.
 - [x] Echter nativer `neutrino`-Link mit Generic-PC-HAL, Zapit, Audio-,
       Video-, RCInput- und Daemon-Bibliotheken abgeschlossen.
-- [ ] Kontrollierter CNeutrinoApp-Lauf unter Xvfb oder realem X-Server; auf
-      dem aktuellen Host ist kein X-Server verfügbar.
+- [x] Kontrollierter CNeutrinoApp-Lauf unter dem vorhandenen realen X-Server;
+      Xvfb ist auf dem Host nicht installiert und daher nicht als getestet
+      markiert.
 
 ## Host-Abhängigkeiten und Nachweise
 
@@ -64,7 +75,16 @@
       separat gebauten x86-64-`libstb-hal`-Anteil; Yocto-ARM-Artefakte wurden
       durch die zentrale Architekturprüfung ausgeschlossen.
 
-Der Bootstrap ist ein echter, gelinkter Core-/HAL-Testprozess, aber bewusst
-noch kein vollständiger `CNeutrinoApp`-Start und wird nicht als solcher
-ausgegeben. `scripts/native-cneutrino-syntax` prüft zusätzlich den echten
-Produktionsquelltext von `src/neutrino.cpp`, ohne Zielbibliotheken zu linken.
+Der Bootstrap bleibt ein isolierter Core-/HAL-Testprozess. Zusätzlich ist der
+vollständige native `neutrino`-Link nun bis zum echten CNeutrinoApp-GUI-Start
+verifiziert: GLFB initialisiert den OSD-Puffer, Fonts/Logo werden geladen,
+`rcsim`-Eingaben werden über den Event-Socket zugestellt und der bestehende
+HTTP-Control-Endpunkt löst den regulären Shutdown aus. Ohne DVB-Gerät bleiben
+demonstrativ die DVB-/Zapit-Fehlermeldungen; daraus wird keine Live-
+Wiedergabefunktion abgeleitet. Der reproduzierbare Test ist:
+
+```sh
+NEUTRINO_NATIVE_BIN=/pfad/zur/installierten/bin/neutrino \
+NEUTRINO_NATIVE_RCSIM=/pfad/zur/installierten/bin/rcsim \
+  ./scripts/native-gui-smoke
+```

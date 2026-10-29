@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+binary="${NEUTRINO_NATIVE_BIN:-}"
+rcsim="${NEUTRINO_NATIVE_RCSIM:-}"
+display_name="${DISPLAY:-}"
+web_port="${NEUTRINO_NATIVE_WEB_PORT:-8080}"
+start_timeout="${NEUTRINO_NATIVE_GUI_START_TIMEOUT:-60}"
+shutdown_timeout="${NEUTRINO_NATIVE_GUI_SHUTDOWN_TIMEOUT:-20}"
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+[[ -n "$binary" ]] || die 'NEUTRINO_NATIVE_BIN muss auf das installierte Full-Core-Programm zeigen'
+[[ -x "$binary" ]] || die "GUI-Binary fehlt oder ist nicht ausführbar: $binary"
+[[ -n "$display_name" ]] || die 'DISPLAY ist nicht gesetzt; X11 oder Xvfb bereitstellen'
+command -v glxinfo >/dev/null || die 'glxinfo fehlt; die X11-OpenGL-Umgebung kann nicht geprüft werden'
+command -v curl >/dev/null || die 'curl fehlt; der kontrollierte Shutdown kann nicht ausgelöst werden'
+[[ -n "$rcsim" ]] || rcsim="$(dirname "$binary")/rcsim"
+[[ -x "$rcsim" ]] || die "rcsim fehlt oder ist nicht ausführbar: $rcsim"
+
+"$repo/scripts/check-build-architecture" --compiler c++ "$binary" "$rcsim"
+glxinfo -B >/dev/null 2> >(sed 's/^/GLX: /' >&2) || die "OpenGL/X11-Anzeige nicht nutzbar: $display_name"
+
+run_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-native-gui.XXXXXX")"
+pid=''
+cleanup() {
+	if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+		kill -TERM "$pid" 2>/dev/null || true
+		for _ in {1..20}; do
+			kill -0 "$pid" 2>/dev/null || break
+			sleep 0.1
+		done
+		kill -KILL "$pid" 2>/dev/null || true
+		wait "$pid" 2>/dev/null || true
+	fi
+	find "$run_dir" -depth -delete 2>/dev/null || true
+}
+trap cleanup EXIT HUP INT TERM
+
+mkdir -p "$run_dir/home" "$run_dir/config" "$run_dir/state"
+log="$run_dir/neutrino.log"
+HOME="$run_dir/home" XDG_CONFIG_HOME="$run_dir/config" XDG_STATE_HOME="$run_dir/state" \
+	HAL_NOAVDEC="${HAL_NOAVDEC:-1}" DISPLAY="$display_name" \
+	"$binary" --verbose 0 >"$log" 2>&1 &
+pid=$!
+printf 'STARTET: pid=%s display=%s log=%s\n' "$pid" "$display_name" "$log"
+
+started=0
+for _ in $(seq 1 "$((start_timeout * 4))"); do
+	if ! kill -0 "$pid" 2>/dev/null; then
+		break
+	fi
+	if grep -q 'GLFB: GL thread starting' "$log" && grep -q 'render: reinit' "$log"; then
+		started=1
+		break
+	fi
+	sleep 0.25
+done
+if ((started != 1)); then
+	tail -120 "$log" >&2
+	die 'Full-Core erreichte den GUI-Startmarker nicht'
+fi
+printf 'GUI-START: GLFB/OSD und Renderpfad nachweisbar\n'
+
+for _ in {1..20}; do
+	[[ -S /tmp/neutrino.sock ]] && break
+	sleep 0.25
+done
+[[ -S /tmp/neutrino.sock ]] || { tail -120 "$log" >&2; die 'Neutrino-Event-Socket wurde nicht angelegt'; }
+"$rcsim" KEY_MENU
+sleep 0.5
+"$rcsim" KEY_EXIT
+printf 'EINGABE: KEY_MENU und KEY_EXIT über rcsim zugestellt\n'
+
+status=000
+for _ in {1..20}; do
+	status="$(curl --connect-timeout 1 --max-time 2 -sS -o "$run_dir/shutdown.out" \
+		-w '%{http_code}' "http://127.0.0.1:${web_port}/control/shutdown" 2>/dev/null || true)"
+	[[ "$status" != 000 ]] && break
+	sleep 0.5
+done
+[[ "$status" == 200 ]] || { tail -120 "$log" >&2; die "Shutdown-API antwortete mit HTTP $status"; }
+printf 'SHUTDOWN: HTTP 200 über /control/shutdown\n'
+
+for _ in $(seq 1 "$((shutdown_timeout * 4))"); do
+	kill -0 "$pid" 2>/dev/null || break
+	sleep 0.25
+done
+if kill -0 "$pid" 2>/dev/null; then
+	tail -120 "$log" >&2
+	die 'Full-Core beendete sich nach dem kontrollierten Shutdown nicht'
+fi
+set +e
+wait "$pid"
+exit_code=$?
+set -e
+pid=''
+((exit_code < 128)) || die "Full-Core wurde durch Signal beendet (Exitcode $exit_code)"
+grep -q 'GLFB: GL thread stopping' "$log" || die 'GL-Thread wurde nicht regulär beendet'
+grep -q 'streaming shutdown done' "$log" || die 'regulärer Neutrino-Shutdown nicht vollständig nachweisbar'
+printf 'ERFOLG: GUI-Smoke bestanden, kontrollierter Exitcode=%s, Architektur x86-64 geprüft\n' "$exit_code"

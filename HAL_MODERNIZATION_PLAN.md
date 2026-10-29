@@ -179,6 +179,15 @@ receiverabhängige Bibliotheken ein. Der aktuelle Bootstrap beweist daher
 Start/Shutdown und gemeinsame Core-/HAL-Bausteine, nicht bereits DVB-,
 Video-, Audio-, OSD- oder vollständige Neutrino-Menüfunktion.
 
+Die direkte Host-Syntaxprobe von `src/neutrino.cpp` bestätigt den realen
+Einstieg (`main()` → `CNeutrinoApp::getInstance()` → `run()`). Der Konstruktor
+initialisiert bereits den Framebuffer; `run()` ruft anschließend unter anderem
+`cs_api_init()`, Locale/Fonts, VFD, Zapit, Audio, Video, RCInput und den
+Timer-Daemon auf. Im aktuellen Hostsystem stoppt die Probe reproduzierbar beim
+fehlenden nativen `pugixml.hpp`; die ARM-Yocto-Sysroot wird dafür nicht
+verwendet. Ein vollständiger CNeutrinoApp-Headlessstart ist deshalb noch nicht
+erreicht und wird nicht behauptet.
+
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen
 deterministischen Software-OSD-Hash sowie einen headless Eingabeereignistest

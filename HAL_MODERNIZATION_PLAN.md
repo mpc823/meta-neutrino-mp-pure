@@ -94,6 +94,35 @@ Ursachenanalyse.
 
 ## Native x86-64-Headless-Stufe
 
+### Verbindliche Architekturtrennung
+
+Alle nativen und Yocto-Target-Artefakte müssen vor Verwendung und Auslieferung
+gegen das tatsächliche Compiler-Target geprüft werden. Die zentrale Logik liegt
+in `scripts/check-build-architecture`; sie ermittelt das Target mit
+`compiler -dumpmachine`, prüft ELF-Machine, ELF-Klasse und Endianness und
+untersucht bei `.a`-Archiven jedes enthaltene Objekt. Nicht-ELF-Dateien werden
+als legitime Daten/Firmware übersprungen.
+
+Die nativen Wrapper `native-generic-pc` und `native-x86-headless` rufen diese
+Prüfung verbindlich auf. Für Yocto wird sie über
+`classes/neutrino-architecture-check.bbclass` in `libstb-hal` und
+`neutrino-mp` vor und nach `do_compile` sowie vor `do_package` ausgeführt.
+Damit werden veraltete Objekte mit falscher Architektur vor dem Link erkannt.
+Native PC-Arbeitskopien müssen frisch erzeugt und von alten Yocto-Objekten
+bereinigt werden; ein kopierter In-Source-Baum darf nicht als sauber gelten.
+
+Der dauerhafte Negativtest ist:
+
+```sh
+NEUTRINO_ARCH_WRONG_CC=/pfad/zum/fremden-cross-gcc \
+  ./scripts/check-build-architecture --self-test --compiler c++ /bin/true
+```
+
+Auf dem Referenzhost wurde damit ein gemischtes x86-/ARM-Archiv abgelehnt.
+Für SH4, MIPS, PowerPC und historische ARM-Ziele ist die gemeinsame Prüfung
+vorbereitet, aber mangels installierter Toolchains nicht als echte Plattform-
+Prüfung ausgegeben.
+
 Der vorhandene Generic-PC-Code ist kein vollständig isolierter Hostbuild:
 
 - `generic-pc/hardware_caps.c` ist ohne externe Medienbibliotheken nativ
@@ -151,8 +180,10 @@ Die FFmpeg-Anpassung liegt in
 Sie betrifft ausschließlich `generic-pc/*`, verwendet für alte FFmpeg-Majors
 weiterhin die historischen Decoderaufrufe und schaltet `av_register_all()` nur
 für alte Versionen frei. Raspberry-Pi-, SH4-, MIPS- und sonstige Legacy-Dateien
-werden nicht verändert. GLUT/GLEW bleiben für den headless Softwarepfad außen
-vor; der produktive OpenGL-Zweig wird nicht entfernt.
+werden nicht verändert. Für den vollständigen nativen Link werden zusätzlich
+die gemeinsamen `common`-HAL-Objekte und der produktive OpenGL-Zweig mit
+GLUT/GLEW gebaut. Der OpenGL-Zweig bleibt optional; der headless Softwarepfad
+wird dadurch nicht ersetzt.
 
 ## Master-TODO
 
@@ -160,13 +191,13 @@ vor; der produktive OpenGL-Zweig wird nicht entfernt.
 - [x] FFmpeg-Kompatibilität versionsabhängig und ausschließlich im Generic-PC-
       Backend patchen.
 - [x] Headless-, Core- und ASan/UBSan-Tests reproduzierbar ausführen.
-- [ ] Vollständigen Neutrino-Core als native x86-64-Anwendung linken.
+- [x] Vollständigen Neutrino-Core als native x86-64-Anwendung linken.
 - [ ] Native headless Startsequenz ohne DVB-Gerät und ohne Desktop validieren.
 - [x] Native pugixml-Compilerprobe und reproduzierbare Syntaxprobe des echten
       `src/neutrino.cpp`-Einstiegs ergänzen.
-- [ ] Native libcurl-Entwicklungsabhängigkeit bereitstellen und den Configure-
-      Pfad erneut prüfen (`libcurl4-openssl-dev` oder `libcurl4-gnutls-dev`).
-- [ ] Optionalen OpenGL-Fensterpfad mit installierten GLUT/GLEW-Headern testen.
+- [x] Native libcurl-Entwicklungsabhängigkeit und Configure-Pfad prüfen.
+- [x] OpenGL-/GLUT-/GLEW-Pfad kompilieren, linken und ELF-Architektur prüfen.
+- [ ] OpenGL-Fenster unter einem realen X-Server oder Xvfb starten.
 
 ## Native-Neutrino-Headless-Bootstrap
 
@@ -194,14 +225,11 @@ die ARM-Yocto-Sysroot wird nicht verwendet. Ein vollständiger
 CNeutrinoApp-Headlessstart ist deshalb weiterhin nicht erreicht und wird nicht
 behauptet.
 
-Der erste native Configure-Versuch legt den nächsten echten Host-Blocker offen:
-`configure` verlangt `libcurl.pc`, im System ist nur die Laufzeitbibliothek
-installiert (`curl-config` ist ebenfalls nicht vorhanden). Der reproduzierbare
-Ubuntu-Paketname ist `libcurl4-openssl-dev` (alternativ
-`libcurl4-gnutls-dev`); ohne eines dieser Pakete darf der Full-Core-Build nicht
-als erfolgreich bezeichnet werden. Zusätzlich muss für den späteren Link ein
-vollständiges natives `libstb-hal`-Archiv erzeugt werden; ein HAL-Testarchiv oder
-eine leere Bibliotheksattrappe wäre kein CNeutrinoApp-Build.
+Der native Configure-Pfad verwendet inzwischen `libcurl4-openssl-dev` und
+`libpugixml-dev`; beide sind per pkg-config und Compilerprobe verifiziert.
+Für den Full-Core-Link wird ein vollständiges natives `libstb-hal`-Archiv aus
+`common` und Generic-PC/OpenGL gebaut. Ein HAL-Testarchiv oder eine leere
+Bibliotheksattrappe wird nicht als CNeutrinoApp-Build gewertet.
 
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen
@@ -220,11 +248,21 @@ Bewusst getrennte Statusklassen:
 4. **Grafikausgabe/Hardwarebeschleunigung:** nicht getestet; es gibt keinen
    Desktop- oder DRM/KMS-Startpfad.
 
-Ein natives Full-Core-Buildziel ist der nächste separate Schritt. Dafür müssen
-die vorhandenen Host-Entwicklungsabhängigkeiten reproduzierbar bereitgestellt
-werden; sie werden nicht ungeprüft in das Receiver-Image übernommen. Ein
+Das native Full-Core-Buildziel ist gelinkt; der kontrollierte Programmstart
+erreicht die echte HAL-/OpenGL-Initialisierung. Ohne `DISPLAY` beendet GLUT den
+Prozess korrekt mit „failed to open display“. Ein
 optional späteres Yocto-x86-64-Image sollte erst nach dem nativen Core-/HAL-
 Build als eigener MACHINE-/BSP-Schritt folgen.
+
+Der reproduzierbare Full-Core-Link verwendet die Host-Pakete `libdvbsi++`,
+`lua5.2`, `libswscale`, `libao`, `freeglut3-dev` und `libglew-dev`; entscheidend
+ist die Make-Variablenform `make ... CPPFLAGS=... LDFLAGS=... LIBS=...`, da das
+Autotools-Makefile ein Umgebungs-`LIBS` überschreiben kann. Danach prüft
+`scripts/check-build-architecture` das gelinkte `src/neutrino` als x86-64.
+Die Raspberry-Pi-2-Regression `bitbake -k -c compile neutrino-mp libstb-hal`
+lief mit Exitcode 0 durch. Die FFmpeg-Kompatibilität verwendet für historische
+Toolchains versionsabhängige `AVCodec`- und `AVOutputFormat`-Typen; der
+OpenMAX-/Legacy-Pfad bleibt unverändert.
 
 ## Testkriterien
 

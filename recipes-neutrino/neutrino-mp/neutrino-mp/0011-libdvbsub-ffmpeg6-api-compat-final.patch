@@ -1,0 +1,43 @@
+diff --git a/lib/libdvbsub/dvbsubtitle.cpp b/lib/libdvbsub/dvbsubtitle.cpp
+index 2b9d2c521..b3e7cea05 100644
+--- a/lib/libdvbsub/dvbsubtitle.cpp
++++ b/lib/libdvbsub/dvbsubtitle.cpp
+@@ -12,6 +12,7 @@
+  */
+ 
+ #include "dvbsubtitle.h"
++#include <pthread.h>
+ 
+ extern "C" {
+ #include <unistd.h>
+@@ -171,7 +172,9 @@ cDvbSubtitleConverter::cDvbSubtitleConverter(void)
+ 	avctx = NULL;
+ 	avcodec = NULL;
+ 
++#if LIBAVCODEC_VERSION_MAJOR < 58
+ 	avcodec_register_all();
++#endif
+ 	avcodec = avcodec_find_decoder(CODEC_DVB_SUB);//CODEC_ID_DVB_SUBTITLE or AV_CODEC_ID_DVB_SUBTITLE from 57.1.100
+ 	if (!avcodec) {
+ 		dbgconverter("cDvbSubtitleConverter: unable to get dvb subtitle codec!\n");
+diff --git a/lib/libdvbsub/dvbsubtitle.h b/lib/libdvbsub/dvbsubtitle.h
+index 647852c5d..cce83f1f7 100644
+--- a/lib/libdvbsub/dvbsubtitle.h
++++ b/lib/libdvbsub/dvbsubtitle.h
+@@ -19,6 +19,7 @@ extern "C" {
+ #include <sys/mman.h>
+ #include <libavformat/avformat.h>
+ #include <libavcodec/avcodec.h>
++#include <libavcodec/version.h>
+ #include <libavutil/avutil.h>
+ }
+ 
+@@ -32,7 +33,7 @@ private:
+   pthread_mutex_t mutex;
+   cList<cDvbSubtitleBitmaps> *bitmaps;
+   AVCodecContext * avctx;
+-  AVCodec * avcodec;
++  const AVCodec * avcodec;
+   int min_x, min_y, max_x, max_y;
+   cTimeMs Timeout;
+ public:

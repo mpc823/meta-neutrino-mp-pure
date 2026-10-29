@@ -48,6 +48,8 @@ if [[ "${NEUTRINO_SANITIZE:-0}" == 1 ]]; then
 	ASAN_OPTIONS=detect_leaks=1 "$out_dir/native-headless-sanitized"
 fi
 
+"$repo/scripts/check-build-architecture" --compiler "$cxx_bin" "$out_dir"
+
 printf 'PASS: native x86-64 Generic-PC subset compiled\n'
 printf 'HAL source: %s\n' "$hal_source"
 printf 'Neutrino core source: %s\n' "$neutrino_source"

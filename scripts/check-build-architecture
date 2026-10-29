@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  printf 'Aufruf: %s [--compiler COMPILER] [--self-test] ARTIFAKT...\n' "$0" >&2
+}
+
+compiler="${CXX:-${CC:-cc}}"
+self_test=0
+artifacts=()
+while (($#)); do
+  case "$1" in
+    --compiler) [[ $# -ge 2 ]] || { usage; exit 2; }; compiler=$2; shift 2 ;;
+    --self-test) self_test=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    --) shift; artifacts+=("$@"); break ;;
+    -*) usage; exit 2 ;;
+    *) artifacts+=("$1"); shift ;;
+  esac
+done
+
+die() { printf 'ARCHITEKTURFEHLER: %s\n' "$*" >&2; exit 1; }
+command -v "$compiler" >/dev/null || die "Compiler nicht gefunden: $compiler"
+command -v readelf >/dev/null || die "readelf fehlt"
+command -v ar >/dev/null || die "ar fehlt"
+
+target="$($compiler -dumpmachine 2>/dev/null)" || die "Compilerziel nicht ermittelbar: $compiler"
+[[ -n "$target" ]] || die "Compiler liefert kein Target: $compiler"
+case "$target" in
+  x86_64-*|amd64-*) expected="x86-64"; machine_re='Advanced Micro Devices X86-64|X86-64'; class_re='ELF64'; data_re='LSB|little endian' ;;
+  i[3-6]86-*|i86pc-*) expected="x86"; machine_re='Intel 80386|Intel 80286'; class_re='ELF32'; data_re='LSB|little endian' ;;
+  aarch64-*|arm64-*) expected="AArch64"; machine_re='AArch64'; class_re='ELF64'; data_re='LSB|little endian' ;;
+  arm*-*|arm*) expected="ARM"; machine_re='ARM'; class_re='ELF32'; data_re='LSB|little endian' ;;
+  mips64*el-*|mips64*el) expected="MIPS64 little-endian"; machine_re='MIPS R3000|MIPS'; class_re='ELF64'; data_re='LSB|little endian' ;;
+  mips64*-*|mips64*) expected="MIPS64 big-endian"; machine_re='MIPS R3000|MIPS'; class_re='ELF64'; data_re='MSB|big endian' ;;
+  mips*el-*|mips*el) expected="MIPS little-endian"; machine_re='MIPS R3000|MIPS'; class_re='ELF32'; data_re='LSB|little endian' ;;
+  mips*-*|mips*) expected="MIPS big-endian"; machine_re='MIPS R3000|MIPS'; class_re='ELF32'; data_re='MSB|big endian' ;;
+  sh4*eb-*|sh4*eb) expected="Renesas SH big-endian"; machine_re='Renesas SH'; class_re='ELF32'; data_re='MSB|big endian' ;;
+  sh4*-*|sh4*) expected="Renesas SH little-endian"; machine_re='Renesas SH'; class_re='ELF32'; data_re='LSB|little endian' ;;
+  powerpc64le-*|ppc64le-*) expected="PowerPC64 little-endian"; machine_re='PowerPC64'; class_re='ELF64'; data_re='LSB|little endian' ;;
+  powerpc64-*|ppc64-*) expected="PowerPC64 big-endian"; machine_re='PowerPC64'; class_re='ELF64'; data_re='MSB|big endian' ;;
+  powerpc-*|ppc-*) expected="PowerPC"; machine_re='PowerPC'; class_re='ELF32'; data_re='MSB|big endian' ;;
+  *) die "Compilerziel nicht unterstützt/unklar: $target" ;;
+esac
+
+checked=0
+check_elf() {
+  local path=$1 label=$2 header machine class data
+  header=$(readelf -h "$path" 2>/dev/null) || return 0
+  machine=$(awk -F: '/^[[:space:]]*Machine:/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' <<<"$header")
+  class=$(awk -F: '/^[[:space:]]*Class:/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' <<<"$header")
+  data=$(awk -F: '/^[[:space:]]*Data:/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' <<<"$header")
+  ((checked+=1))
+  if ! grep -Eq "$machine_re" <<<"$machine" || ! grep -Eq "$class_re" <<<"$class" || ! grep -Eq "$data_re" <<<"$data"; then
+    die "$label: gefunden machine='$machine', class='$class', data='$data'; erwartet '$expected' aus $target"
+  fi
+}
+
+check_archive() {
+  local archive=$1 member tmp member_path
+  mapfile -t members < <(ar t "$archive") || die "Archiv kann nicht gelesen werden: $archive"
+  for member in "${members[@]}"; do
+    tmp=$(mktemp -d "${TMPDIR:-/tmp}/arch-check.XXXXXX")
+    member_path="$tmp/member.o"
+    ar p "$archive" "$member" >"$member_path" || die "$archive: Mitglied nicht lesbar: $member"
+    check_elf "$member_path" "$archive($member)"
+    find "$tmp" -depth -delete
+  done
+}
+
+check_path() {
+  local path=$1
+  [[ -e "$path" ]] || die "Artefakt fehlt: $path"
+  if [[ -d "$path" ]]; then
+    while IFS= read -r -d '' candidate; do check_path "$candidate"; done < <(find "$path" -type f -print0)
+  elif [[ "$path" == *.a ]]; then
+    check_archive "$path"
+  else
+    check_elf "$path" "$path"
+  fi
+}
+
+run_self_test() {
+  local tmp wrong good mixed wrong_cc
+  wrong_cc="${NEUTRINO_ARCH_WRONG_CC:-arm-poky-linux-gnueabi-gcc}"
+  command -v "$wrong_cc" >/dev/null || die "Negativtest benötigt einen Fremdcompiler; setze NEUTRINO_ARCH_WRONG_CC"
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/arch-check-selftest.XXXXXX")
+  trap 'find "$tmp" -depth -delete' RETURN
+  printf 'int architecture_test(void) { return 0; }\n' | "$compiler" -x c -c -o "$tmp/good.o" -
+  printf 'int wrong_architecture_test(void) { return 1; }\n' | "$wrong_cc" -x c -c -o "$tmp/wrong.o" -
+  ar rcs "$tmp/mixed.a" "$tmp/good.o" "$tmp/wrong.o"
+  if "$0" --compiler "$compiler" "$tmp/mixed.a" >/dev/null 2>&1; then
+    die "Negativtest fehlgeschlagen: gemischtes Archiv wurde akzeptiert"
+  fi
+  printf 'PASS: Architektur-Negativtest erkennt falsches Objekt und gemischtes Archiv\n'
+}
+
+if ((self_test)); then run_self_test; fi
+((${#artifacts[@]})) || { usage; exit 2; }
+for artifact in "${artifacts[@]}"; do check_path "$artifact"; done
+printf 'PASS: Architekturprüfung target=%s erwartet=%s geprüft=%d Fehler=0\n' "$target" "$expected" "$checked"

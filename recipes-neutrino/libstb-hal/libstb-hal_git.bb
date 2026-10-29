@@ -54,7 +54,7 @@ SRC_URI = " \
 
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
-inherit autotools-brokensep pkgconfig
+inherit autotools-brokensep pkgconfig neutrino-architecture-check
 
 # CFLAGS:append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
 

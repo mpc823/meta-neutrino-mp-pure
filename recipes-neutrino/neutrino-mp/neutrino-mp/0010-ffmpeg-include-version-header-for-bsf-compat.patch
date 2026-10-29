@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 00:00:00 +0000
+Subject: [PATCH] ffmpeg: include codec version header before BSF checks
+
+The stream and record headers select between the historical
+AVBitStreamFilterContext and the modern AVBSFContext using
+LIBAVCODEC_VERSION_INT.  That macro is not guaranteed to be provided by
+libavformat.h alone, which makes the old branch selected with FFmpeg 6.
+Include the authoritative codec version header explicitly.  The guarded
+selection remains unchanged for older receiver toolchains.
+
+Upstream-Status: Pending
+---
+ src/driver/streamts.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/src/driver/streamts.h
++++ b/src/driver/streamts.h
+@@ -32,3 +32,7 @@
+ extern "C" {
++#include <libavcodec/version.h>
++#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57,52,100)
++#include <libavcodec/bsf.h>
++#endif
+ #include <libavformat/avformat.h>
+ }

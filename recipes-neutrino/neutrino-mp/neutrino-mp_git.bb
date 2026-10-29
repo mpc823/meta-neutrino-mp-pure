@@ -77,11 +77,14 @@ SRC_URI = " \
 	file://0007-eitd-include-ctime.patch \
 	file://0008-controlapi-use-time-t-for-stop-time.patch \
 	file://0009-configure-do-not-embed-build-paths.patch \
+	file://0010-ffmpeg-include-version-header-for-bsf-compat.patch \
+           file://0011-libdvbsub-ffmpeg6-api-compat-final.patch \
+           file://0012-generic-pc-ffmpeg6-audio-record-stream-compat-final.patch \
 "
 
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
-inherit autotools-brokensep pkgconfig update-rc.d
+inherit autotools-brokensep pkgconfig update-rc.d neutrino-architecture-check
 
 INITSCRIPT_PACKAGES   = "${PN}"
 INITSCRIPT_NAME:${PN} = "neutrino"

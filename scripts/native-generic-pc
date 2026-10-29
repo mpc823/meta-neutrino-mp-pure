@@ -35,6 +35,7 @@ done
 cc -std=c11 -Wall -Wextra -I"$work/hal" -I"$work/hal/common" -I"$work/hal/include" \
   -c "$work/hal/generic-pc/hardware_caps.c" -o "$work/obj/hardware_caps.o"
 ar rcs "$work/libgeneric-headless.a" "$work"/obj/*.o
+"$repo/scripts/check-build-architecture" --compiler c++ "$work/obj" "$work/libgeneric-headless.a"
 printf 'PASS: native Generic-PC headless archive built\n'
 printf 'HAL source: %s\n' "$hal_source"
 printf 'Archive: libgeneric-headless.a\n'

@@ -1,0 +1,200 @@
+diff --git a/src/driver/audiodec/ffmpegdec.cpp b/src/driver/audiodec/ffmpegdec.cpp
+index 02ccdb412..72a84badd 100644
+--- a/src/driver/audiodec/ffmpegdec.cpp
++++ b/src/driver/audiodec/ffmpegdec.cpp
+@@ -43,6 +43,7 @@
+ extern "C" {
+ #include <libavutil/opt.h>
+ #include <libavutil/samplefmt.h>
++#include <libavutil/frame.h>
+ #include <libswresample/swresample.h>
+ }
+ 
+@@ -85,8 +86,12 @@ CFfmpegDec::CFfmpegDec(void)
+ 	buffer_size = 0x1000;
+ 	buffer = NULL;
+ 	avc = NULL;
++#if LIBAVCODEC_VERSION_MAJOR < 58
+ 	avcodec_register_all();
++#endif
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
+ }
+ 
+ CFfmpegDec::~CFfmpegDec(void)
+@@ -157,7 +162,10 @@ bool CFfmpegDec::Init(void *_in, const CFile::FileType /* ft */)
+ 		return false;
+ 	}
+ 	avc->pb = avioc;
+-	avc->flags |= AVFMT_FLAG_CUSTOM_IO|AVFMT_FLAG_KEEP_SIDE_DATA;
++	avc->flags |= AVFMT_FLAG_CUSTOM_IO;
++#ifdef AVFMT_FLAG_KEEP_SIDE_DATA
++	avc->flags |= AVFMT_FLAG_KEEP_SIDE_DATA;
++#endif
+ 
+ 	AVInputFormat *input_format = NULL;
+ 
+@@ -248,7 +256,7 @@ CBaseDec::RetCode CFfmpegDec::Decoder(FILE *_in, int /*OutputFd*/, State* state,
+ 	SwrContext *swr = swr_alloc();
+ 	if (!swr) {
+ 		mutex.lock();
+-		avcodec_close(c);
++		avcodec_free_context(&c);
+ 		mutex.unlock();
+ 		DeInit();
+ 		Status=DATA_ERR;
+@@ -345,10 +353,6 @@ CBaseDec::RetCode CFfmpegDec::Decoder(FILE *_in, int /*OutputFd*/, State* state,
+ 				// skip frame
+ 				packet.size = 0;
+ 				avcodec_flush_buffers(c);
+-				mutex.lock();
+-				avcodec_close(c);
+-				avcodec_open2(c, codec, NULL);
+-				mutex.unlock();
+ 				continue;
+ 			}
+ 			packet.size -= len;
+@@ -396,7 +400,7 @@ CBaseDec::RetCode CFfmpegDec::Decoder(FILE *_in, int /*OutputFd*/, State* state,
+ 					fprintf(stderr,"%s: PCM write error (%s).\n", ProgName, strerror(errno));
+ 					Status=WRITE_ERR;
+ 				}
+-				pts = av_frame_get_best_effort_timestamp(frame);
++				pts = frame->best_effort_timestamp;
+ 				if (!start_pts)
+ 					start_pts = pts;
+ 			}
+@@ -413,7 +417,7 @@ CBaseDec::RetCode CFfmpegDec::Decoder(FILE *_in, int /*OutputFd*/, State* state,
+ 	av_free(outbuf);
+ 	av_packet_unref(&rpacket);
+ 	av_frame_free(&frame);
+-	avcodec_close(c);
++	avcodec_free_context(&c);
+ 	//av_free(avcc);
+ 
+ 	DeInit();
+diff --git a/src/driver/audiodec/ffmpegdec.h b/src/driver/audiodec/ffmpegdec.h
+index 7cafb6e85..d20ce6e8c 100644
+--- a/src/driver/audiodec/ffmpegdec.h
++++ b/src/driver/audiodec/ffmpegdec.h
+@@ -39,6 +39,8 @@
+ # endif
+ extern "C" {
+ #include <libavformat/avformat.h>
++#include <libavcodec/avcodec.h>
++#include <libavcodec/version.h>
+ }
+ #include <OpenThreads/Thread>
+ #include <OpenThreads/Condition>
+@@ -54,7 +56,12 @@ private:
+ 	size_t buffer_size;
+ 	unsigned char *buffer;
+ 	AVFormatContext *avc;
+-	AVCodec *codec;
++#if LIBAVCODEC_VERSION_MAJOR >= 58
++	typedef const AVCodec neutrino_avcodec_t;
++#else
++	typedef AVCodec neutrino_avcodec_t;
++#endif
++	neutrino_avcodec_t *codec;
+ 	int best_stream;
+ 	void *in;
+ 	bool Init(void *_in, const CFile::FileType ft);
+diff --git a/src/driver/record.cpp b/src/driver/record.cpp
+index 1625004c4..c0450b9d3 100644
+--- a/src/driver/record.cpp
++++ b/src/driver/record.cpp
+@@ -65,6 +65,8 @@
+ 
+ extern "C" {
+ #include <libavformat/avformat.h>
++#include <libavcodec/version.h>
++#include <libavformat/version.h>
+ }
+ 
+ #if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT( 57, 8, 0 ))
+@@ -2127,8 +2129,12 @@ bool CStreamRec::Open(CZapitChannel * channel)
+ 	}
+ 
+ 	//av_log_set_level(AV_LOG_VERBOSE);
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
++#if LIBAVCODEC_VERSION_MAJOR < 58
+ 	avcodec_register_all();
++#endif
+ 	avformat_network_init();
+ 	printf("%s: Open input [%s]....\n", __FUNCTION__, url.c_str());
+ 
+@@ -2161,11 +2167,17 @@ bool CStreamRec::Open(CZapitChannel * channel)
+ 	AVIOInterruptCB int_cb = { Interrupt, this };
+ 	ifcx->interrupt_callback = int_cb;
+ 
++#if LIBAVFORMAT_VERSION_MAJOR < 59
+ 	snprintf(ifcx->filename, sizeof(ifcx->filename), "%s", channel->getUrl().c_str());
+-	av_dump_format(ifcx, 0, ifcx->filename, 0);
++#endif
++	av_dump_format(ifcx, 0, channel->getUrl().c_str(), 0);
+ 
+ 	std::string tsfile = std::string(filename) + ".ts";
++#if LIBAVFORMAT_VERSION_MAJOR >= 58
++	const AVOutputFormat *ofmt = av_guess_format(NULL, tsfile.c_str(), NULL);
++#else
+ 	AVOutputFormat *ofmt = av_guess_format(NULL, tsfile.c_str(), NULL);
++#endif
+ 	if (ofmt == NULL) {
+ 		printf("%s: av_guess_format for [%s] failed!\n", __FUNCTION__, tsfile.c_str());
+ 		return false;
+@@ -2180,7 +2192,7 @@ bool CStreamRec::Open(CZapitChannel * channel)
+ 	}
+ 
+ 	av_dict_copy(&ofcx->metadata, ifcx->metadata, 0);
+-	snprintf(ofcx->filename, sizeof(ofcx->filename), "%s", tsfile.c_str());
++	av_dump_format(ofcx, 0, tsfile.c_str(), 1);
+ 
+ 	stream_index = -1;
+ 	int stid = 0x200;
+@@ -2203,7 +2215,6 @@ bool CStreamRec::Open(CZapitChannel * channel)
+ 			stream_index = i;
+ 	}
+ 	av_log_set_level(AV_LOG_VERBOSE);
+-	av_dump_format(ofcx, 0, ofcx->filename, 1);
+ 	av_log_set_level(AV_LOG_WARNING);
+ #if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT( 57,52,100 ))
+ 	bsfc = av_bitstream_filter_init("h264_mp4toannexb");
+diff --git a/src/driver/streamts.cpp b/src/driver/streamts.cpp
+index e642e0965..97f46811e 100644
+--- a/src/driver/streamts.cpp
++++ b/src/driver/streamts.cpp
+@@ -795,8 +795,12 @@ bool CStreamStream::Open()
+ 	}
+ 
+ 	//av_log_set_level(AV_LOG_VERBOSE);
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
++#if LIBAVCODEC_VERSION_MAJOR < 58
+ 	avcodec_register_all();
++#endif
+ 	avformat_network_init();
+ 
+ 	printf("%s: Open input [%s]....\n", __FUNCTION__, url.c_str());
+@@ -829,8 +833,7 @@ bool CStreamStream::Open()
+ 	AVIOInterruptCB int_cb = { Interrupt, this };
+ 	ifcx->interrupt_callback = int_cb;
+ 
+-	snprintf(ifcx->filename, sizeof(ifcx->filename), "%s", channel->getUrl().c_str());
+-	av_dump_format(ifcx, 0, ifcx->filename, 0);
++	av_dump_format(ifcx, 0, channel->getUrl().c_str(), 0);
+ 
+ 	buf = (unsigned char *) av_malloc(IN_SIZE);
+ 	if (buf == NULL) {
+@@ -866,7 +869,7 @@ bool CStreamStream::Open()
+ 		ost->id = stid++;
+ 	}
+ 	av_log_set_level(AV_LOG_VERBOSE);
+-	av_dump_format(ofcx, 0, ofcx->filename, 1);
++	av_dump_format(ofcx, 0, "neutrino-stream", 1);
+ 	av_log_set_level(AV_LOG_WARNING);
+ #if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT( 57,52,100 ))
+ 	bsfc = av_bitstream_filter_init("h264_mp4toannexb");

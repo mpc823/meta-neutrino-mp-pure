@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 13:00:00 +0100
+Subject: [PATCH] hal: expose video and display capabilities
+
+Add an optional, additive capability bitmap to the existing hardware
+capability contract. Raspberry Pi reports only capabilities provided by its
+existing OpenMAX/GL framebuffer backend; MPEG-2 is intentionally not claimed
+because Raspberry Pi support depends on the optional codec license and runtime
+configuration. Generic PC reports the existing framebuffer/OpenGL path.
+
+The fields are appended to hw_caps_t, so old fields and all legacy backend
+selection remain unchanged. Legacy backends leave the new fields zero until
+they can provide a verified mapping.
+
+Upstream-Status: Pending
+Signed-off-by: mpc823 <11076149+mpc823@users.noreply.github.com>
+---
+ include/hardware_caps.h    | 23 +++++++++++++++++++++++
+ generic-pc/hardware_caps.c |  2 ++
+ raspi/hardware_caps.c      |  3 +++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/include/hardware_caps.h b/include/hardware_caps.h
+--- a/include/hardware_caps.h
++++ b/include/hardware_caps.h
+@@ -8,6 +8,26 @@
+ #ifndef __HARDWARE_CAPS_H__
+ #define __HARDWARE_CAPS_H__
+ 
++#include <stdint.h>
++
++/* Capabilities describe the selected backend, not a successful runtime
++ * playback test. A bit is set only when the backend can provide it. */
++enum hw_video_capability {
++	HW_VIDEO_CAP_NONE       = 0,
++	HW_VIDEO_CAP_HW_ACCEL   = 1u << 0,
++	HW_VIDEO_CAP_H264       = 1u << 1,
++	HW_VIDEO_CAP_MPEG2      = 1u << 2,
++	HW_VIDEO_CAP_OPENMAX    = 1u << 3
++};
++
++enum hw_display_capability {
++	HW_DISPLAY_CAP_NONE        = 0,
++	HW_DISPLAY_CAP_FRAMEBUFFER = 1u << 0,
++	HW_DISPLAY_CAP_OPENGL      = 1u << 1,
++	HW_DISPLAY_CAP_DRM_KMS     = 1u << 2,
++	HW_DISPLAY_CAP_WINDOW      = 1u << 3
++};
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -44,6 +63,9 @@ typedef struct hw_caps
+ 	char boxvendor[64];
+ 	char boxname[64];
+ 	char boxarch[64];
++	/* Optional extension; old capability fields remain ABI-compatible. */
++	uint32_t video_capabilities;
++	uint32_t display_capabilities;
+ } hw_caps_t;
+ 
+ hw_caps_t *get_hwcaps(void);
+diff --git a/generic-pc/hardware_caps.c b/generic-pc/hardware_caps.c
+--- a/generic-pc/hardware_caps.c
++++ b/generic-pc/hardware_caps.c
+@@ -27,6 +27,8 @@ hw_caps_t *get_hwcaps(void)
+ 	caps.display_type = HW_DISPLAY_LINE_TEXT;
+ 	caps.has_HDMI = 1;
+ 	caps.display_xres = 8;
++	caps.display_capabilities = HW_DISPLAY_CAP_FRAMEBUFFER |
++		HW_DISPLAY_CAP_OPENGL;
+ 	strcpy(caps.boxvendor, "Generic");
+ 	strcpy(caps.boxname, "PC");
+ 	if (! uname(&u))
+diff --git a/raspi/hardware_caps.c b/raspi/hardware_caps.c
+--- a/raspi/hardware_caps.c
++++ b/raspi/hardware_caps.c
+@@ -28,6 +28,10 @@ hw_caps_t *get_hwcaps(void)
+ 	caps.display_type = HW_DISPLAY_LINE_TEXT;
+ 	caps.has_HDMI = 1;
+ 	caps.display_xres = 8;
++	caps.video_capabilities = HW_VIDEO_CAP_HW_ACCEL |
++		HW_VIDEO_CAP_H264 | HW_VIDEO_CAP_OPENMAX;
++	caps.display_capabilities = HW_DISPLAY_CAP_FRAMEBUFFER |
++		HW_DISPLAY_CAP_OPENGL;
+ 	strcpy(caps.boxvendor, "Raspberry");
+ 	strcpy(caps.boxname, "Pi");
+ 	if (! uname(&u))
+

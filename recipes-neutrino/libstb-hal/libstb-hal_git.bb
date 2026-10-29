@@ -48,6 +48,7 @@ SRC_URI = " \
 	file://blank_576.mpg \
 	file://timer-wakeup.init \
 	file://0001-raspi-implement-get-video-system.patch \
+	file://0002-add-video-display-capabilities.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

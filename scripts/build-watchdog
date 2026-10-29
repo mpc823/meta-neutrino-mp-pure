@@ -96,8 +96,8 @@ health_check() {
     local log="$1" age total_kb used_kb avail_kb mem_total mem_avail swap_total swap_avail
     health="OK"; health_reason=""
     if [[ "${NEUTRINO_WATCHDOG_TEST_MODE:-0}" != "1" ]]; then
-        bitbake_count="$(pgrep -fc '^python3 .*/bitbake/bin/bitbake neutrino-image$' || true)"
-        server_count="$(pgrep -fc "${build_root}/sources/${machine}/bitbake/bin/bitbake-server" || true)"
+		bitbake_count="$(ps -eo args= | awk '/[b]itbake/ && /neutrino-image/ && !/[b]itbake-server/ {n++} END {print n+0}')"
+		server_count="$(ps -eo args= | awk '/[b]itbake-server/ {n++} END {print n+0}')"
         if (( bitbake_count > 1 )); then
             health="BLOCKED"; health_reason="mehr als eine BitBake-neutrino-image-Instanz"
             return 1
@@ -124,7 +124,7 @@ health_check() {
         health="BLOCKED"; health_reason="RAM und Swap nahezu erschöpft"
         return 1
     fi
-    if [[ -f "$log" ]]; then
+	if [[ -f "$log" && "$bitbake_count" == 0 && "$server_count" == 0 ]]; then
         age=$(( $(date +%s) - $(stat -c %Y "$log") ))
         if [[ "$status_line" == LÄUFT* && "$age" -gt "$stall_seconds" ]]; then
             health="STALLED"; health_reason="Buildlog seit ${age}s unverändert"
@@ -193,7 +193,7 @@ start_or_attach_wrapper() {
 }
 
 existing_target_running() {
-    pgrep -f '[b]itbake openthreads' >/dev/null 2>&1
+	ps -eo args= | awk '/[b]itbake/ && /neutrino-image/ && !/[b]itbake-server/ {found=1} END {exit !found}'
 }
 
 existing_progress() {
@@ -331,7 +331,15 @@ start_cmd() {
     else
         nohup setsid "$watchdog" run "$machine" </dev/null >/dev/null 2>&1 &
     fi
-    for _ in {1..50}; do [[ -f "$state_file" ]] && break; sleep 0.1; done
+    for _ in {1..100}; do
+        if read_state && [[ "${state:-}" != "RESET" ]] && watchdog_alive; then
+            break
+        fi
+        sleep 0.1
+    done
+    if ! read_state || [[ "${state:-}" == "RESET" ]] || ! watchdog_alive; then
+        die "Watchdog konnte nicht in einen aktiven Zustand wechseln"
+    fi
     status_cmd
 }
 

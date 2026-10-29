@@ -290,17 +290,21 @@ Override wird das Vorhandensein eines Frontends unter `adapter0` bis `adapter15`
 geprüft. Receiver-Builds ohne dieses Makro behalten ihr bisheriges Verhalten.
 
 Der Entwicklungs-PC erkennt den PCTV Systems DVB-S2 Stick 461e (`2013:0258`)
-über `em28xx`, `em28xx_dvb` und `m88ds3103`; die Kernelgeräte existieren. Der
-Kernel meldet jedoch derzeit `dvb-demod-m88ds3103.fw` als fehlend. Damit ist die
-Hardware erkannt, aber ein Empfangstest noch nicht aussagekräftig. Das Ubuntu-
+über `em28xx`, `em28xx_dvb` und `m88ds3103`; die Kernelgeräte existieren. Die
+Firmware ist inzwischen unter `/lib/firmware` installiert; nach USB-
+Neuinitialisierung meldet der Kernel Version `3.B`. Damit ist die
+Firmwareinitialisierung nachgewiesen, aber noch kein Empfangstest. Das Ubuntu-
 `linux-firmware`-Paket enthält diese Datei auf dem Host nicht. Hauppauge nennt
 für den alten 461e ausdrücklich die 3103-/3103b-Firmware; die passende 3103-Datei
 ist 8192 Bytes groß und wurde aus der von Hauppauge referenzierten OpenELEC-
 Firmwarequelle verifiziert. Die Installation bleibt eine bewusst manuelle
-Hostaktion nach Prüfung der SHA-256-Summe; sie ist kein Projektartefakt.
+Hostaktion nach Prüfung der SHA-256-Summe; die Firmware ist kein Projektartefakt.
 Für den auf diesem Host identifizierten alten Stick ist die geprüfte Datei
 `dvb-demod-m88ds3103.fw`, 8192 Bytes, SHA-256
 `4767ab80ceba4a66315cbec2a07ae1f7ebbd19c5758fd098b932e02c9108eff9`.
+Ein direkter Frontend-Probe öffnet `/dev/dvb/adapter0/frontend0`, listet DVB-S
+und DVB-S2 und liefert ohne bekannte Satellitenparameter
+`FE_READ_STATUS=0x00` (`locked=no`); ein Lock wird daher nicht behauptet.
 Die `m88ds3103c`-Datei (16384 Bytes) gehört zu einer anderen Chiprevision und
 wird für USB-ID `2013:0258` nicht verwendet.
 

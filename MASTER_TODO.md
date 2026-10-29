@@ -36,12 +36,12 @@
 - [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
       Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
       Backend testen.
-- [ ] Firmware `dvb-demod-m88ds3103.fw` für den alten PCTV-461e-Identifikator
-      installieren und anschließend einen echten Transponder-Lock testen. Die
-      aktuell vorhandene Kernelmeldung `Direct firmware load ... failed -2`
-      bedeutet: Frontend erkannt, aber noch nicht betriebsbereit.
-      Nach manueller Prüfung: `sudo install -m 0644 /tmp/dvb-demod-m88ds3103.fw
-      /lib/firmware/dvb-demod-m88ds3103.fw`, danach USB-Tuner neu verbinden.
+- [x] Firmware `dvb-demod-m88ds3103.fw` installiert und nach USB-Neuinitialisierung
+      per Kernelmeldung geladen; Version `3.B`, 8192 Bytes, SHA-256
+      `4767ab80ceba4a66315cbec2a07ae1f7ebbd19c5758fd098b932e02c9108eff9`.
+- [ ] Echten Transponder-Lock mit Satellitenanlage testen. Der Frontend-Probe
+      meldet DVB-S/DVB-S2-Unterstützung, aber ohne LNB/Signal `FE_READ_STATUS=0x00`
+      (`locked=no`); erfolgreicher Empfang ist damit nicht nachgewiesen.
 - [ ] Betriebszustände im Tuner-HAL explizit unterscheiden: keine Quelle,
       Frontend vorhanden, Firmware/Frontend nicht betriebsbereit, lokaler
       Empfang, SAT>IP/Remote-Tuner und IPTV.

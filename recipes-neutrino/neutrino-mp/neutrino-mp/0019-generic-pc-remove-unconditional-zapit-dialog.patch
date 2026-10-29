@@ -1,0 +1,5 @@
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2440 +2440,0 @@
+-		DisplayErrorMessage("Zapit initialization failed. This is a fatal error, sorry.");

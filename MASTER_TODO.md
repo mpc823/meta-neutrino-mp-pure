@@ -33,10 +33,11 @@
 ## Offen
 
 - [ ] Vierfachtest der gemeinsamen Generic-PC-Laufzeitmatrix (Fenster/Receiver
-      jeweils mit/ohne lokalen Tuner) abschließen; der aktuelle no-DVB-Smoke
-      erreicht den Initialisierungsmarker trotz weiterlaufendem Prozess noch
-      nicht reproduzierbar. Der Marker ist inzwischen ungepuffert; die weitere
-      Blockade liegt in der Pre-Menu-Initialisierung.
+      jeweils mit/ohne lokalen Tuner) abschließen. Der Fensterpfad mit
+      angeschlossenem PCTV-461e und der kontrollierte Runtime-No-DVB-Pfad
+      erreichen reproduzierbar den GUI-Marker, bedienen Menü/Exit und fahren
+      per HTTP herunter; der dedizierte Receiver-Modus sowie ein echter
+      physischer Geräteausbau sind noch nicht getestet.
 - [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
       Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
       Backend testen.
@@ -55,6 +56,9 @@
 - [ ] Receiver-unabhängigen Headless-Framebuffer und echte Neutrino-
       Nachrichten-/Timer-Schnittstelle integrieren.
 - [ ] Native Senderlisten-/Zapit-Konfiguration ohne Hardware testen.
+- [x] Zapit-Startursache `live_fe == NULL` vor `zapit_server.prepare()`
+      nachgewiesen; Generic-PC-Idle-Quellenmodus, leere Senderlisten- und
+      Eingabe-Nullpointerpfade mit gezielten Patches abgesichert.
 - [x] Optionalen OpenGL-Fensterpfad unter dem vorhandenen X11-Server mit
       automatisiertem Start-/Eingabe-/Shutdown-Smoke-Test validieren.
 - [ ] OpenGL-Fensterpfad zusätzlich unter Xvfb validieren, sobald Xvfb auf dem

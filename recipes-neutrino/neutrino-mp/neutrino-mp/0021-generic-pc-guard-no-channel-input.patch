@@ -1,0 +1,9 @@
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2540,0 +2540,1 @@
++  if (!channelList) return;
+@@ -2556,0 +2557,1 @@
++  if (!channelList) return;
+@@ -2569,0 +2571,1 @@
++  if (!channelList) return;

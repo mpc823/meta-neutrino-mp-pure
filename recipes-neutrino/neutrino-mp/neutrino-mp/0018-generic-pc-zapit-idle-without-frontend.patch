@@ -1,0 +1,13 @@
+diff --git a/src/zapit/src/zapit.cpp b/src/zapit/src/zapit.cpp
+--- a/src/zapit/src/zapit.cpp
++++ b/src/zapit/src/zapit.cpp
+@@ -2533,2 +2533,7 @@
+-	if (live_fe == NULL) /* no frontend found? */
+-		return false;
++#if defined(HAVE_GENERIC_HARDWARE)
++	if (live_fe == NULL)
++		WARN("no local DVB frontend; Zapit enters idle source mode");
++#else
++	if (live_fe == NULL) /* no frontend found? */
++		return false;
++#endif

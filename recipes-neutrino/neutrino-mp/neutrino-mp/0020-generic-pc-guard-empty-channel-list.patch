@@ -1,0 +1,6 @@
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2115,1 +2115,1 @@
+-	if(channelList->getSize() && live_channel_id  && !IS_WEBCHAN(live_channel_id))
++	if(channelList && channelList->getSize() && live_channel_id  && !IS_WEBCHAN(live_channel_id))

@@ -84,6 +84,10 @@ SRC_URI = " \
            file://0014-generic-pc-skip-host-automount.patch \
            file://0015-generic-pc-no-service-startup.patch \
            file://0016-generic-pc-flush-startup-marker.patch \
+           file://0018-generic-pc-zapit-idle-without-frontend.patch \
+           file://0019-generic-pc-remove-unconditional-zapit-dialog.patch \
+           file://0020-generic-pc-guard-empty-channel-list.patch \
+           file://0021-generic-pc-guard-no-channel-input.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

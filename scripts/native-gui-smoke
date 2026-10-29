@@ -78,6 +78,7 @@ done
 "$rcsim" KEY_MENU
 sleep 0.5
 "$rcsim" KEY_EXIT
+sleep 0.5
 printf 'EINGABE: KEY_MENU und KEY_EXIT über rcsim zugestellt\n'
 
 status=000

@@ -313,6 +313,36 @@ Für den auf diesem Host identifizierten alten Stick ist die geprüfte Datei
 Ein direkter Frontend-Probe öffnet `/dev/dvb/adapter0/frontend0`, listet DVB-S
 und DVB-S2 und liefert ohne bekannte Satellitenparameter
 `FE_READ_STATUS=0x00` (`locked=no`); ein Lock wird daher nicht behauptet.
+
+### Zapit-Initialisierung: nachgewiesene Ursache und Korrektur
+
+Der frühere Dialog wird in `src/neutrino.cpp` in `CNeutrinoApp::run()` durch
+`DisplayErrorMessage("Zapit initialization failed...")` ausgelöst, wenn
+`CZapit::Start()` false liefert. Die konkrete historische Ursache lag in
+`src/zapit/src/zapit.cpp`, Funktion `CZapit::Start()`: Nach
+`CFEManager::getInstance()->Init()` wurde `live_fe = getFE(0)` gesetzt und bei
+`live_fe == NULL` sofort `false` zurückgegeben. Dieser Rückweg lag vor
+`zapit_server.prepare(ZAPIT_UDS_NAME)`. Ohne lokales Frontend entstand daher
+kein `/tmp/zapit.sock`; das war ein Frontend-Voraussetzungsfehler, kein
+Socket-Timeout und kein Zapit-Absturz.
+
+Die Patchfolge korrigiert diesen Ablauf für `HAVE_GENERIC_HARDWARE` dauerhaft:
+`0018` lässt Zapit ohne lokales Frontend in einen ausdrücklich protokollierten
+Idle-Quellenzustand weiterlaufen, damit der Dienst seinen Socket und Thread
+bereitstellt. Historische Receiver behalten den ursprünglichen Rückweg.
+`0019` entfernt eine versehentlich verbliebene unbedingte Dialogzeile in der
+vorherigen Generic-PC-Patchfolge. `0020` schützt die Initialisierung vor einer
+leeren Senderliste, `0021` verhindert spätere Nullzeigerdereferenzierungen bei
+Tastenpfaden wie Numeric-/Quick-Zap und Info. Diese Korrekturen ändern nicht
+den gemeinsamen DVB-Core und erzeugen keine No-DVB-Kompilierungsvariante.
+
+Mit angeschlossenem PCTV-461e wurden Zapit-Socket, `menue setup`,
+`[neutrino] initialized everything`, `KEY_MENU`, `KEY_EXIT` und der reguläre
+HTTP-Shutdown nachgewiesen. Der kontrollierte Generic-PC-Test mit
+`NEUTRINO_PC_NO_DVB=1` erzwingt den Laufzeitpfad ohne lokale Senderliste, ohne
+das physische Gerät zu entfernen; deshalb ist er ein deterministischer
+Laufzeit-/GUI-Test, aber kein Beweis für einen realen Geräteausbau. Ein echter
+Satellitenlock bleibt wegen fehlender Transponder-/LNB-Parameter offen.
 Die `m88ds3103c`-Datei (16384 Bytes) gehört zu einer anderen Chiprevision und
 wird für USB-ID `2013:0258` nicht verwendet.
 

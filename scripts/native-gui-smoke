@@ -23,6 +23,14 @@ glxinfo -B >/dev/null 2> >(sed 's/^/GLX: /' >&2) || die "OpenGL/X11-Anzeige nich
 
 run_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-native-gui.XXXXXX")"
 pid=''
+pc_no_dvb="${NEUTRINO_PC_NO_DVB:-}"
+if [[ -z "$pc_no_dvb" ]]; then
+	if compgen -G '/dev/dvb/adapter*/frontend*' >/dev/null 2>&1; then
+		pc_no_dvb=0
+	else
+		pc_no_dvb=1
+	fi
+fi
 cleanup() {
 	if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
 		kill -TERM "$pid" 2>/dev/null || true
@@ -40,7 +48,7 @@ trap cleanup EXIT HUP INT TERM
 mkdir -p "$run_dir/home" "$run_dir/config" "$run_dir/state"
 log="$run_dir/neutrino.log"
 HOME="$run_dir/home" XDG_CONFIG_HOME="$run_dir/config" XDG_STATE_HOME="$run_dir/state" \
-	HAL_NOAVDEC="${HAL_NOAVDEC:-1}" DISPLAY="$display_name" \
+	HAL_NOAVDEC="${HAL_NOAVDEC:-1}" NEUTRINO_PC_NO_DVB="$pc_no_dvb" DISPLAY="$display_name" \
 	"$binary" --verbose 0 >"$log" 2>&1 &
 pid=$!
 printf 'STARTET: pid=%s display=%s log=%s\n' "$pid" "$display_name" "$log"
@@ -50,7 +58,7 @@ for _ in $(seq 1 "$((start_timeout * 4))"); do
 	if ! kill -0 "$pid" 2>/dev/null; then
 		break
 	fi
-	if grep -q 'GLFB: GL thread starting' "$log" && grep -q 'render: reinit' "$log"; then
+	if grep -q 'GLFB: GL thread starting' "$log" && grep -q 'render: reinit' "$log" && grep -q '\[neutrino\] initialized everything' "$log"; then
 		started=1
 		break
 	fi

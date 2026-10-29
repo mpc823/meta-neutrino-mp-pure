@@ -80,6 +80,8 @@ SRC_URI = " \
 	file://0010-ffmpeg-include-version-header-for-bsf-compat.patch \
            file://0011-libdvbsub-ffmpeg6-api-compat-final.patch \
            file://0012-generic-pc-ffmpeg6-audio-record-stream-compat-final.patch \
+           file://0013-generic-pc-no-dvb-startup.patch \
+           file://0014-generic-pc-skip-host-automount.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

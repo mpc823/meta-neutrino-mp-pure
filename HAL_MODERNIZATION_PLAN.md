@@ -276,6 +276,40 @@ GLFB initialisiert den OpenGL/OSD-Puffer, Neutrino lädt Fonts und Logo,
 `CNeutrinoApp`-Lauf, aber noch kein Nachweis für DVB-Tuner, Live-Video oder
 Audio auf dem PC.
 
+### Tunerzustände und PCTV 461e
+
+`CZapit::Start()` benötigt für den historischen Live-Pfad ein Frontend. Ohne
+`/dev/dvb/adapter*/frontend0` liefert der Frontend-Manager `false`; das war die
+konkrete Ursache des früheren fatalen Dialogs, nicht ein fehlender Zapit- oder
+HTTP-Socket. Der Generic-PC-Pfad behandelt diesen Zustand mit
+`NEUTRINO_GENERIC_PC_NO_DVB` und `generic_pc_no_dvb_mode()` als fehlende
+Empfangsquelle: GUI, OSD, Timer, HTTP und `CStreamManager` bleiben nutzbar,
+während EIT/DVB-Zeitsuche und historisches Receiver-Automount entfallen.
+Ein gesetztes `NEUTRINO_PC_NO_DVB=0` erzwingt den lokalen Tunerpfad; ohne
+Override wird das Vorhandensein eines Frontends unter `adapter0` bis `adapter15`
+geprüft. Receiver-Builds ohne dieses Makro behalten ihr bisheriges Verhalten.
+
+Der Entwicklungs-PC erkennt den PCTV Systems DVB-S2 Stick 461e (`2013:0258`)
+über `em28xx`, `em28xx_dvb` und `m88ds3103`; die Kernelgeräte existieren. Der
+Kernel meldet jedoch derzeit `dvb-demod-m88ds3103.fw` als fehlend. Damit ist die
+Hardware erkannt, aber ein Empfangstest noch nicht aussagekräftig. Das Ubuntu-
+`linux-firmware`-Paket enthält diese Datei auf dem Host nicht. Hauppauge nennt
+für den alten 461e ausdrücklich die 3103-/3103b-Firmware; die passende 3103-Datei
+ist 8192 Bytes groß und wurde aus der von Hauppauge referenzierten OpenELEC-
+Firmwarequelle verifiziert. Die Installation bleibt eine bewusst manuelle
+Hostaktion nach Prüfung der SHA-256-Summe; sie ist kein Projektartefakt.
+Für den auf diesem Host identifizierten alten Stick ist die geprüfte Datei
+`dvb-demod-m88ds3103.fw`, 8192 Bytes, SHA-256
+`4767ab80ceba4a66315cbec2a07ae1f7ebbd19c5758fd098b932e02c9108eff9`.
+Die `m88ds3103c`-Datei (16384 Bytes) gehört zu einer anderen Chiprevision und
+wird für USB-ID `2013:0258` nicht verwendet.
+
+Langfristig werden Tuner als Ressourcen modelliert: lokal betriebsbereit,
+vorhanden aber nicht betriebsbereit, keine Quelle, SAT>IP/Remote-Tuner und
+IPTV. Ein Remote-Tuner mit Erkennung, Capability-Austausch, Reservierung,
+Transportstream und Reconnect ist ein separater späterer Meilenstein und wird
+hier zunächst nur architektonisch vorgemerkt.
+
 Der reproduzierbare Test `scripts/native-gui-smoke` verlangt eine installierte
 Full-Core-Binary in `NEUTRINO_NATIVE_BIN`, prüft deren x86-64-ELF sowie `rcsim`
 mit der zentralen Architekturprüfung, validiert die OpenGL/X11-Anzeige, startet

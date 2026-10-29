@@ -1,0 +1,15 @@
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2383,9 +2383,11 @@ TIMER_START();
++#if !defined(NEUTRINO_GENERIC_PC_NO_DVB)
+ #ifndef ASSUME_MDEV
+ 	mkdir("/media/sda1", 0755);
+ 	mkdir("/media/sdb1", 0755);
+ 	my_system(3, "mount", "/dev/sda1", "/media/sda1");
+ 	my_system(3, "mount", "/dev/sdb1", "/media/sdb1");
+ #endif
+ 
+ 	CFSMounter::automount();
++#endif
+ 	g_Plugins = new CPlugins;

@@ -22,6 +22,12 @@
 - [x] Kontrollierter GUI-Shutdown über `/control/shutdown` sowie
       Tastatureingaben über den produktiven `rcsim`-Event-Socket mit
       `scripts/native-gui-smoke` reproduzierbar getestet.
+- [x] Generic-PC-Betrieb ohne Frontend als eigener Startzustand behandelt:
+      Zapit darf bei fehlender Empfangsquelle nicht mehr den GUI-Start abbrechen;
+      der DVB-EIT/Zeitsuchlauf und historisches Host-Automount werden in diesem
+      PC-Modus nicht gestartet.
+- [x] USB-DVB-S2-Frontend PCTV 461e (2013:0258) am Host erkannt; Kernel bindet
+      `em28xx`/`em28xx_dvb`/`m88ds3103` und legt die DVB-Geräte an.
 
 ## Offen
 
@@ -30,6 +36,18 @@
 - [ ] DVB-Tuner, Live-Video/Audio und physische Eingabegeräte auf echter
       Hardware beziehungsweise mit einem vollständigen virtuellen DVB-/AV-
       Backend testen.
+- [ ] Firmware `dvb-demod-m88ds3103.fw` für den alten PCTV-461e-Identifikator
+      installieren und anschließend einen echten Transponder-Lock testen. Die
+      aktuell vorhandene Kernelmeldung `Direct firmware load ... failed -2`
+      bedeutet: Frontend erkannt, aber noch nicht betriebsbereit.
+      Nach manueller Prüfung: `sudo install -m 0644 /tmp/dvb-demod-m88ds3103.fw
+      /lib/firmware/dvb-demod-m88ds3103.fw`, danach USB-Tuner neu verbinden.
+- [ ] Betriebszustände im Tuner-HAL explizit unterscheiden: keine Quelle,
+      Frontend vorhanden, Firmware/Frontend nicht betriebsbereit, lokaler
+      Empfang, SAT>IP/Remote-Tuner und IPTV.
+- [ ] Remote-Tuner als eigener späterer Meilenstein: Servererkennung,
+      Fähigkeiten, Reservierung/Freigabe, TS-Transport, Reconnect und
+      Kombination lokaler/entfernter Tuner.
 - [ ] Receiver-unabhängigen Headless-Framebuffer und echte Neutrino-
       Nachrichten-/Timer-Schnittstelle integrieren.
 - [ ] Native Senderlisten-/Zapit-Konfiguration ohne Hardware testen.
@@ -79,9 +97,11 @@ Der Bootstrap bleibt ein isolierter Core-/HAL-Testprozess. Zusätzlich ist der
 vollständige native `neutrino`-Link nun bis zum echten CNeutrinoApp-GUI-Start
 verifiziert: GLFB initialisiert den OSD-Puffer, Fonts/Logo werden geladen,
 `rcsim`-Eingaben werden über den Event-Socket zugestellt und der bestehende
-HTTP-Control-Endpunkt löst den regulären Shutdown aus. Ohne DVB-Gerät bleiben
-demonstrativ die DVB-/Zapit-Fehlermeldungen; daraus wird keine Live-
-Wiedergabefunktion abgeleitet. Der reproduzierbare Test ist:
+HTTP-Control-Endpunkt löst den regulären Shutdown aus. Bei `NEUTRINO_PC_NO_DVB=1`
+bleibt die GUI auch ohne Frontend verfügbar; `CStreamManager` für Netzwerk- und
+IPTV-Pfade bleibt aktiv. Ohne erkannte Firmware ist ein Frontend dagegen nur
+erkannt, aber noch kein belastbarer Empfangsnachweis. Der reproduzierbare Test
+ist:
 
 ```sh
 NEUTRINO_NATIVE_BIN=/pfad/zur/installierten/bin/neutrino \

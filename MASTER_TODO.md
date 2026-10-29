@@ -61,6 +61,9 @@
       Eingabe-Nullpointerpfade mit gezielten Patches abgesichert.
 - [x] Optionalen OpenGL-Fensterpfad unter dem vorhandenen X11-Server mit
       automatisiertem Start-/Eingabe-/Shutdown-Smoke-Test validieren.
+- [x] GUI-Smoke-Test um echte X11-Fensteraufnahme nach `KEY_MENU` erweitert;
+      `xwininfo`/`xwd` bestätigen Fenstername `Neutrino`, 1280x720-Auflösung
+      und ein plausibles XWD-Bildartefakt.
 - [ ] OpenGL-Fensterpfad zusätzlich unter Xvfb validieren, sobald Xvfb auf dem
       Host verfügbar ist; echte Video-/Audio-Wiedergabe bleibt offen.
 - [ ] Native Startumgebung ohne X-Server als separaten Headless-Framebuffer
@@ -81,6 +84,18 @@
       vollständig verfügbar und daher nicht als getestet markiert.
 
 ## CNeutrinoApp-Analyse
+
+## Debugging und Remote-GDB
+
+- [x] Host-Debugwerkzeuge `gdb`, `gdbserver` und `gdb-multiarch` verfügbar;
+      GDB bleibt Ergänzung zu Logs, Instrumentierung, strace und Sanitizern.
+- [ ] Bei echtem Zielhardwarefehler Debug-Symbole und passenden Sysroot für
+      Raspberry Pi/SH4/MIPS/PPC bereitstellen und `gdbserver` ausschließlich
+      über einen SSH-Tunnel verwenden. Keine Debugports in Produktionsnetzen
+      öffnen und Debugwerkzeuge nicht standardmäßig ins Release-Image nehmen.
+- [ ] Remote-GDB erst beim ersten reproduzierbaren Zielhardwarefehler aktiv
+      einsetzen; HTTP-Steuerung kann dann zur reproduzierbaren Auslösung
+      kombiniert werden.
 
 - [x] Echter Einstieg in `src/neutrino.cpp` und Initialisierungsreihenfolge
       geprüft.

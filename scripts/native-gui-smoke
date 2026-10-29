@@ -77,6 +77,17 @@ done
 [[ -S /tmp/neutrino.sock ]] || { tail -120 "$log" >&2; die 'Neutrino-Event-Socket wurde nicht angelegt'; }
 "$rcsim" KEY_MENU
 sleep 0.5
+if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
+	window_id="$(xwininfo -root -tree 2>/dev/null | awk '/"Neutrino"/ { print $1; exit }')"
+	[[ -n "$window_id" ]] || { tail -120 "$log" >&2; die 'Neutrino-X11-Fenster wurde nicht gefunden'; }
+	screenshot="$run_dir/neutrino-menu.xwd"
+	xwd -id "$window_id" -silent -out "$screenshot"
+	screenshot_size="$(stat -c '%s' "$screenshot")"
+	((screenshot_size > 4096)) || die "GUI-Screenshot ist unplausibel klein: ${screenshot_size} Bytes"
+	printf 'VISUAL: Neutrino-Fenster aufgenommen (%s Bytes, %s)\n' "$screenshot_size" "$(file -b "$screenshot")"
+else
+	printf 'VISUAL: X11-Screenshot übersprungen (xwininfo/xwd fehlt)\n'
+fi
 "$rcsim" KEY_EXIT
 sleep 0.5
 printf 'EINGABE: KEY_MENU und KEY_EXIT über rcsim zugestellt\n'

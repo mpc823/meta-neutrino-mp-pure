@@ -343,6 +343,12 @@ HTTP-Shutdown nachgewiesen. Der kontrollierte Generic-PC-Test mit
 das physische Gerät zu entfernen; deshalb ist er ein deterministischer
 Laufzeit-/GUI-Test, aber kein Beweis für einen realen Geräteausbau. Ein echter
 Satellitenlock bleibt wegen fehlender Transponder-/LNB-Parameter offen.
+
+Der GUI-Smoke-Test nimmt nach `KEY_MENU` zusätzlich das tatsächliche GLUT-
+Fenster mit `xwininfo`/`xwd` auf und prüft XWD-Format, Fenstername, Auflösung
+und eine plausible Dateigröße. Damit ist die sichtbare X11-Fensterausgabe
+getrennt von bloßen Startmarkern nachweisbar; die temporäre Aufnahme bleibt
+außerhalb des Git-Arbeitsbaums.
 Die `m88ds3103c`-Datei (16384 Bytes) gehört zu einer anderen Chiprevision und
 wird für USB-ID `2013:0258` nicht verwendet.
 

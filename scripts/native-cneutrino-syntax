@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+default_core="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/neutrino-mp/3.7.1+git/sources/neutrino-mp-3.7.1+git"
+default_hal="${repo}/../.neutrino-build/raspberrypi2/tmp/work/raspberrypi2-poky-linux-gnueabi/libstb-hal/0.1+git/sources/libstb-hal-0.1+git"
+core="${NEUTRINO_CORE_SOURCE:-$default_core}"
+hal="${NEUTRINO_LIBSTB_HAL_SOURCE:-$default_hal}"
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+[[ -f "$core/src/neutrino.cpp" ]] || die "neutrino.cpp fehlt: $core/src/neutrino.cpp"
+[[ -d "$hal/include" ]] || die "libstb-hal-Header fehlen: $hal/include"
+command -v c++ >/dev/null || die "C++-Compiler fehlt"
+
+packages=(sigc++-2.0 freetype2 libpng libavformat libavcodec libavutil
+  libswresample libswscale ao pugixml openthreads lua5.2 libcurl)
+for package in "${packages[@]}"; do
+  pkg-config --exists "$package" || die "native pkg-config-Paket fehlt: $package"
+done
+
+out_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-cneutrino-syntax.XXXXXX")"
+trap 'find "$out_dir" -depth -delete' EXIT HUP INT TERM
+includes=(-I"$core" -I"$core/src" -I"$core/lib" -I"$core/src/zapit/include"
+  -I"$core/src/driver" -I"$core/src/daemonc" -I"$core/src/system"
+  -I"$core/src/timerd" -I"$core/src/eitd" -I"$core/src/nhttpd"
+  -I"$core/src/sectionsd" -I"$core/src/gui" -I"$core/src/streaminfo"
+  -I"$core/lib/libconfigfile" -I"$hal/include")
+while IFS= read -r -d '' include_dir; do
+  includes+=("-I$include_dir")
+done < <(find "$core/lib" "$core/src" -mindepth 1 -maxdepth 2 -type d -print0)
+read -r -a pkg_cflags <<< "$(pkg-config --cflags "${packages[@]}")"
+# Syntax-only deliberately avoids target libraries and any ARM/Yocto sysroot.
+c++ -std=gnu++11 -fsyntax-only -D_GNU_SOURCE \
+  "${includes[@]}" "${pkg_cflags[@]}" "$core/src/neutrino.cpp"
+printf 'PASS: native CNeutrinoApp production syntax probe (x86-64 host libraries)\n'

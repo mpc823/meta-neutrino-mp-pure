@@ -23,11 +23,18 @@
 
 - [x] Echter Einstieg in `src/neutrino.cpp` und Initialisierungsreihenfolge
       geprüft.
-- [x] Native Syntaxprobe mit Host-Includes durchgeführt.
-- [ ] Native `CNeutrinoApp`-Ausführung: aktuell blockiert bereits der erste
-      fehlende Host-Baustein `pugixml.hpp`; danach folgen VFD, Zapit, Audio,
-      Video, RCInput und Daemon-Abhängigkeiten.
+- [ ] Native Syntaxkompilierung mit vollständig verfügbaren Host-Includes
+      durchführen (aktuell fehlt libcurl-dev).
+- [x] Native pugixml-Entwicklungsdateien geprüft und die reproduzierbare
+      Syntaxprobe für den produktiven `CNeutrinoApp`-Einstieg als
+      `scripts/native-cneutrino-syntax` dokumentiert; der Lauf stoppt derzeit
+      korrekt am fehlenden `libcurl`-Hostpaket.
+- [ ] Native `CNeutrinoApp`-Ausführung: der nächste reproduzierbare Blocker
+      ist der fehlende Host-Entwicklungsbaustein `libcurl` (Header und
+      `libcurl.pc`); danach müssen native libstb-hal-, Zapit-, VFD-, Audio-,
+      Video-, RCInput- und Daemon-Bibliotheken separat gelinkt werden.
 
 Der Bootstrap ist ein echter, gelinkter Core-/HAL-Testprozess, aber bewusst
 noch kein vollständiger `CNeutrinoApp`-Start und wird nicht als solcher
-ausgegeben.
+ausgegeben. `scripts/native-cneutrino-syntax` prüft zusätzlich den echten
+Produktionsquelltext von `src/neutrino.cpp`, ohne Zielbibliotheken zu linken.

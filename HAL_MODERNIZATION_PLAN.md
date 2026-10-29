@@ -162,6 +162,10 @@ vor; der produktive OpenGL-Zweig wird nicht entfernt.
 - [x] Headless-, Core- und ASan/UBSan-Tests reproduzierbar ausführen.
 - [ ] Vollständigen Neutrino-Core als native x86-64-Anwendung linken.
 - [ ] Native headless Startsequenz ohne DVB-Gerät und ohne Desktop validieren.
+- [x] Native pugixml-Compilerprobe und reproduzierbare Syntaxprobe des echten
+      `src/neutrino.cpp`-Einstiegs ergänzen.
+- [ ] Native libcurl-Entwicklungsabhängigkeit bereitstellen und den Configure-
+      Pfad erneut prüfen (`libcurl4-openssl-dev` oder `libcurl4-gnutls-dev`).
 - [ ] Optionalen OpenGL-Fensterpfad mit installierten GLUT/GLEW-Headern testen.
 
 ## Native-Neutrino-Headless-Bootstrap
@@ -183,10 +187,21 @@ Die direkte Host-Syntaxprobe von `src/neutrino.cpp` bestätigt den realen
 Einstieg (`main()` → `CNeutrinoApp::getInstance()` → `run()`). Der Konstruktor
 initialisiert bereits den Framebuffer; `run()` ruft anschließend unter anderem
 `cs_api_init()`, Locale/Fonts, VFD, Zapit, Audio, Video, RCInput und den
-Timer-Daemon auf. Im aktuellen Hostsystem stoppt die Probe reproduzierbar beim
-fehlenden nativen `pugixml.hpp`; die ARM-Yocto-Sysroot wird dafür nicht
-verwendet. Ein vollständiger CNeutrinoApp-Headlessstart ist deshalb noch nicht
-erreicht und wird nicht behauptet.
+Timer-Daemon auf. `pugixml.hpp` ist inzwischen als native Host-Abhängigkeit
+mit Version 1.14 verifiziert. `scripts/native-cneutrino-syntax` wiederholt
+diese Prüfung reproduzierbar und verwendet dabei ausschließlich Host-Header;
+die ARM-Yocto-Sysroot wird nicht verwendet. Ein vollständiger
+CNeutrinoApp-Headlessstart ist deshalb weiterhin nicht erreicht und wird nicht
+behauptet.
+
+Der erste native Configure-Versuch legt den nächsten echten Host-Blocker offen:
+`configure` verlangt `libcurl.pc`, im System ist nur die Laufzeitbibliothek
+installiert (`curl-config` ist ebenfalls nicht vorhanden). Der reproduzierbare
+Ubuntu-Paketname ist `libcurl4-openssl-dev` (alternativ
+`libcurl4-gnutls-dev`); ohne eines dieser Pakete darf der Full-Core-Build nicht
+als erfolgreich bezeichnet werden. Zusätzlich muss für den späteren Link ein
+vollständiges natives `libstb-hal`-Archiv erzeugt werden; ein HAL-Testarchiv oder
+eine leere Bibliotheksattrappe wäre kein CNeutrinoApp-Build.
 
 Das Skript kompiliert nativ `generic-pc/hardware_caps.c` und
 `generic-pc/playback.cpp`, prüft die Capability-API und führt einen

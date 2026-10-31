@@ -2,10 +2,16 @@
 set -Eeuo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-host="${NEUTRINO_BUILDFARM_HOST:-192.168.0.68}"
-user="${NEUTRINO_BUILDFARM_USER:-codex}"
-remote_root="${NEUTRINO_BUILDFARM_ROOT:-/srv/neutrino-build}"
-identity="${NEUTRINO_BUILDFARM_IDENTITY:-${HOME}/.ssh/id_ed25519_imac_build}"
+local_config="${NEUTRINO_BUILDFARM_CONFIG:-$repo/.buildfarm/local.conf}"
+if [[ -r "$local_config" ]]; then
+	# This file is deliberately ignored and contains only local worker settings.
+	# shellcheck disable=SC1090
+	source "$local_config"
+fi
+host="${NEUTRINO_BUILDFARM_HOST:-}"
+user="${NEUTRINO_BUILDFARM_USER:-}"
+remote_root="${NEUTRINO_BUILDFARM_ROOT:-}"
+identity="${NEUTRINO_BUILDFARM_IDENTITY:-}"
 allow_dirty=0
 dry_run=0
 
@@ -31,6 +37,8 @@ done
 
 command -v git >/dev/null || die 'git is required'
 command -v rsync >/dev/null || die 'rsync is required'
+[[ -n "$host" && -n "$user" && -n "$remote_root" && -n "$identity" ]] || \
+	die "buildfarm is not configured; use a local ignored config or NEUTRINO_BUILDFARM_* variables"
 [[ -r "$identity" ]] || die "SSH identity not readable: $identity"
 git -C "$repo" rev-parse --verify HEAD >/dev/null || die 'not a Git worktree'
 

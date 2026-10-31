@@ -1,5 +1,6 @@
 # Yocto/OpenEmbedded build output (build roots are normally kept outside this layer).
 build/
+.neutrino-build/
 tmp/
 cache/
 downloads/
@@ -16,6 +17,7 @@ __pycache__/
 *.swp
 
 # Credentials and local overrides.
+.buildfarm/
 *.pem
 *.key
 *credentials*

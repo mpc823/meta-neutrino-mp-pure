@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 00:00:00 +0000
+Subject: [PATCH] common: show Neutrino Fusion splash with legacy fallback
+
+Use the common logo directory for the project splash on every target. Older
+images that do not contain the new asset retain the existing logo behaviour.
+The decision is made at runtime and is independent of tuner or platform
+selection.
+---
+ src/neutrino.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+index 0000000..1111111 100644
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2354,1 +2354,5 @@
+-	frameBuffer->showFrame(LOGODIR "/logo.jpg");
++	const char *fusionSplash = LOGODIR "/neutrino-fusion-splash.png";
++	if (access(fusionSplash, R_OK) == 0)
++		frameBuffer->showFrame(fusionSplash);
++	else
++		frameBuffer->showFrame(LOGODIR "/logo.jpg");

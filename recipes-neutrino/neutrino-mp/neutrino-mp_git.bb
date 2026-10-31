@@ -72,6 +72,7 @@ SRC_URI = " \
 	file://timezone.xml \
 	file://custom-poweroff.init \
 	file://mount.mdev \
+	file://neutrino-fusion-splash.png \
 	file://COPYING.GPL \
 	file://0001-timerdclient-include-time-header.patch \
 	file://0002-tuxtxt-include-pthread-header.patch \
@@ -104,6 +105,7 @@ SRC_URI = " \
            file://0030-remove-dead-dbox2-decoder-branches.patch \
            file://0031-generic-pc-skip-hdd-startup-control.patch \
            file://0032-generic-pc-guard-null-bouquet-list.patch \
+	file://0033-common-fusion-splash.patch \
 "
 
 # the build system is not really broken wrt separate builddir,
@@ -138,6 +140,9 @@ do_install:prepend () {
 	install -m 755 ${UNPACKDIR}/neutrino.init ${D}/${sysconfdir}/init.d/neutrino
 	install -m 755 ${UNPACKDIR}/custom-poweroff.init ${D}/${sysconfdir}/init.d/custom-poweroff
 	install -m 644 ${UNPACKDIR}/timezone.xml ${D}/${sysconfdir}/timezone.xml
+	install -d ${D}${datadir}/tuxbox/neutrino/icons/logo
+	install -m 0644 ${UNPACKDIR}/neutrino-fusion-splash.png \
+		${D}${datadir}/tuxbox/neutrino/icons/logo/neutrino-fusion-splash.png
 	install -d ${D}/lib/mdev/fs
 	install -m 755 ${UNPACKDIR}/mount.mdev ${D}/lib/mdev/fs/mount
 	install -d ${D}/var/cache

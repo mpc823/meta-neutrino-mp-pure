@@ -11,11 +11,19 @@ require_text() {
 }
 
 require_text recipes-neutrino/neutrino-mp/neutrino-mp.inc '--with-boxtype=armbox --with-boxmodel=hd51'
+require_text conf/machine/hd51.conf 'MACHINE_FEATURES += "alsa usbhost dvb ci emmc mmc swap mountboot v3d-nxpl hdmi hdmicec osdposition"'
+require_text conf/machine/hd51.conf 'PREFERRED_PROVIDER_virtual/kernel = "linux-gfutures"'
+require_text conf/machine/hd51.conf 'PREFERRED_PROVIDER_virtual/dvb-driver ?= "gfutures-dvb-modules-hd51"'
+require_text conf/machine/hd51.conf 'PREFERRED_PROVIDER_virtual/egl ?= "hd-v3ddriver-hd51"'
 require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'LIBSTB_HAL_GIT:hd51'
 require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'SRCREV:hd51'
 require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'alsa-lib'
 require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'openssl'
 require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'RDEPENDS:${PN}:append:hd51'
+require_text recipes-images/images/neutrino-image.bb 'neutrino-mp'
+require_text recipes-images/images/neutrino-image-base.inc 'kernel-modules'
+require_text oe-alliance/meta-brands/meta-gfutures/conf/machine/include/gfutures-oem.inc 'gfutures-dvb-modules-${MACHINE_DRIVER}'
+require_text oe-alliance/meta-brands/meta-gfutures/conf/machine/include/gfutures-oem.inc 'hd-v3ddriver-${MACHINE}'
 
 for file in \
 	recipes-neutrino/libstb-hal/libstb-hal/0005-armbox-dvb-uapi-compat.patch \

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+errors=0
+fail() { printf 'ERROR: %s\n' "$*" >&2; errors=$((errors + 1)); }
+
+# Keep the historical compile-time no-DVB switch out of the project.  Build
+# artifacts outside the repository are deliberately not scanned here; each
+# native build wrapper must validate its own generated tree separately.
+legacy="NEUTRINO_GENERIC_PC_NO_DVB"
+scan_paths=(
+	"$repo/scripts" "$repo/docs" "$repo/recipes-neutrino" "$repo/recipes-local"
+	"$repo/conf" "$repo/tests" "$repo/Makefile" "$repo/MASTER_TODO.md"
+	"$repo/HAL_MODERNIZATION_PLAN.md"	)
+if rg -n --hidden --glob '!.git/**' --glob '!check-generic-pc-contract' "$legacy" "${scan_paths[@]}" >/dev/null 2>&1; then
+	fail "historical compile-time switch is still present: $legacy"
+fi
+
+patch_dir="$repo/recipes-neutrino/neutrino-mp/neutrino-mp"
+rg -Fq 'HAVE_GENERIC_HARDWARE' "$patch_dir/0013-generic-pc-no-dvb-startup.patch" || \
+	fail 'Generic-PC startup is not guarded by the common HAL target capability'
+rg -Fq 'NEUTRINO_PC_NO_DVB' "$repo/scripts/native-gui-smoke" || \
+	fail 'runtime no-tuner test override is missing from the GUI test'
+rg -Fq 'has_local_dvb' "$patch_dir/0013-generic-pc-no-dvb-startup.patch" || \
+	fail 'Generic-PC startup does not consume the runtime DVB capability'
+
+if (( errors )); then
+	printf 'GENERIC_PC_CONTRACT=FAIL errors=%d\n' "$errors" >&2
+	exit 1
+fi
+printf 'GENERIC_PC_CONTRACT=PASS legacy_compile_switch=absent runtime_dvb=present\n'

@@ -14,6 +14,7 @@ if pgrep -x neutrino >/dev/null 2>&1; then
 fi
 
 printf '%s\n' 'REGRESSION: native x86-64 Headless-Prüfung'
+"$repo/scripts/check-generic-pc-contract"
 "$repo/scripts/native-x86-headless"
 
 printf '%s\n' 'REGRESSION: Generic-PC GUI ohne lokalen DVB-Tuner'

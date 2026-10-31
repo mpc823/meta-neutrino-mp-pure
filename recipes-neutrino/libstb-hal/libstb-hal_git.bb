@@ -91,7 +91,7 @@ EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
 # cst-next selects the verified Broadcom ARM-box HAL.  Do not pull desktop
 # OpenGL, GLUT, GLEW or libao into this embedded target.
 EXTRA_OECONF:hd51 = "--enable-maintainer-mode --disable-silent-rules --enable-shared --with-boxtype=hd51 --with-boxmodel=hd51 --enable-gstreamer_10"
-DEPENDS:append:hd51 = " alsa-lib gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-bad"
+DEPENDS:append:hd51 = " alsa-lib gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-bad openssl"
 
 do_configure:prepend() {
 	export AUTOMAKE="automake --foreign"

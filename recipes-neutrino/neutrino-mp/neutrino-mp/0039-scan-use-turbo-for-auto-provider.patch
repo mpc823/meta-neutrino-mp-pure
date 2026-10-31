@@ -1,0 +1,21 @@
+diff --git a/src/zapit/include/zapit/scan.h b/src/zapit/include/zapit/scan.h
+--- a/src/zapit/include/zapit/scan.h
++++ b/src/zapit/include/zapit/scan.h
+@@ -56,4 +56,5 @@ class CServiceScan : public OpenThreads::Thread
+ 			SCAN_DATA		= 0x80,
+ 			SCAN_ALL		= 0xE0,
+-			SCAN_LOGICAL_HD		= 0x100
++			SCAN_LOGICAL_HD		= 0x100,
++			SCAN_NIT_TURBO		= 0x200
+ 		} scan_flags_t;
+diff --git a/src/gui/scan.cpp b/src/gui/scan.cpp
+--- a/src/gui/scan.cpp
++++ b/src/gui/scan.cpp
+@@ -258,4 +258,5 @@ int CScanTs::exec(CMenuTarget* /*parent*/, const std::string & actionKey)
+ 	} else {
+-		if(scansettings.scan_nit)
+-			scan_flags |= CServiceScan::SCAN_NIT;
++		/* NIT turbo is a satellite optimization; DVB-T/C keep their existing path. */
++		if(scansettings.scan_nit && CFrontend::isSat(delsys))
++			scan_flags |= CServiceScan::SCAN_NIT | CServiceScan::SCAN_NIT_TURBO;
+ 	}

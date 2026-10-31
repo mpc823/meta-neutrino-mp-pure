@@ -1,0 +1,29 @@
+diff --git a/src/zapit/src/scan.cpp b/src/zapit/src/scan.cpp
+--- a/src/zapit/src/scan.cpp
++++ b/src/zapit/src/scan.cpp
+@@ -250,5 +250,6 @@ bool CServiceScan::ReadNitSdt(t_satellite_position satellitePosition, bool probe_until_lock)
+ 	std::string networkName;
+ 	channel_number_map_t nit_logical_map;
+ 	channel_number_map_t nit_hd_logical_map;
++	bool nit_discovery_done = false;
+ _repeat:
+ 	found_transponders = processed_transponders + scantransponders.size();
+@@ -289,5 +290,7 @@ _repeat:
+ 		freq_id_t freq = CREATE_FREQ_ID(tI->second.feparams.frequency, !CFrontend::isSat(tI->second.feparams.delsys));
+ 
+ 		CNit nit(satellitePosition, freq, cable_nid);
+-		if(flags & SCAN_NIT)
++		const bool run_nit = (flags & SCAN_NIT) &&
++			(!(flags & SCAN_NIT_TURBO) || !nit_discovery_done);
++		if(run_nit)
+ 			nit.Start();
+@@ -300,6 +303,8 @@ _repeat:
+ 		CSdt sdt(satellitePosition, freq);
+ 		bool sdt_parsed = sdt.Parse(tI->second.transport_stream_id, tI->second.original_network_id);
+ 
+-		if(flags & SCAN_NIT) {
++		if(run_nit) {
+ 			nit.Stop();
++			if (!nittransponders.empty())
++				nit_discovery_done = true;
+ 			networkName = nit.GetNetworkName();

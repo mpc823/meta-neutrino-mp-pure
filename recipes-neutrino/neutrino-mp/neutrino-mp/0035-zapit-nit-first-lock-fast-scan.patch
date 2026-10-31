@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 15:20:00 +0100
+Subject: [PATCH] zapit: probe until first lock before fallback scan
+
+When NIT scanning is enabled, probe the configured transponder list until
+the first usable lock. Process NIT-derived transponders immediately, then
+scan the remaining configured list as a fallback.
+
+Upstream-Status: Inappropriate [project-specific scan policy]
+
+---
++diff --git a/src/zapit/include/zapit/scan.h b/src/zapit/include/zapit/scan.h
+index 7457b2889..8a416c5d3 100644
+--- a/src/zapit/include/zapit/scan.h
++++ b/src/zapit/include/zapit/scan.h
+@@ -88,7 +88,7 @@ class CServiceScan : public OpenThreads::Thread
+ 		void Cleanup(const bool success);
+ 		bool tuneFrequency(FrontendParameters *feparams, t_satellite_position satellitePosition);
+ 		void SendTransponderInfo(transponder &t);
+-		bool ReadNitSdt(t_satellite_position satellitePosition);
++		bool ReadNitSdt(t_satellite_position satellitePosition, bool probe_until_lock = false);
+ 		bool AddFromNit();
+ 		void FixServiceTypes();
+ 
+diff --git a/src/zapit/src/scan.cpp b/src/zapit/src/scan.cpp
+index bba6e472f..f919dfaf8 100644
+--- a/src/zapit/src/scan.cpp
++++ b/src/zapit/src/scan.cpp
+@@ -239,7 +239,7 @@ bool CServiceScan::AddFromNit()
+ 	return !scantransponders.empty();
+ }
+ 
+-bool CServiceScan::ReadNitSdt(t_satellite_position satellitePosition)
++bool CServiceScan::ReadNitSdt(t_satellite_position satellitePosition, bool probe_until_lock)
+ {
+ 	stiterator tI;
+ 	printf("[scan] scanning tp from sat/service\n");
+@@ -255,6 +255,7 @@ _repeat:
+ 	CZapit::getInstance()->SendEvent ( CZapitClient::EVT_SCAN_NUM_TRANSPONDERS,
+ 			&found_transponders, sizeof(found_transponders));
+ 
++	bool lock_probed = false;
+ 	for (tI = scantransponders.begin(); tI != scantransponders.end(); ++tI) {
+ 		if(abort_scan)
+ 			return false;
+@@ -328,6 +329,10 @@ _repeat:
+ 			continue;
+ 		}
+ 		scanedtransponders.insert(transponder_pair_t(t.transponder_id, t));
++		if (probe_until_lock) {
++			lock_probed = true;
++			break;
++		}
+ 		/* partial compare with existent transponders, update params if found */
+ 		for (stiterator ttI = transponders.begin(); ttI != transponders.end(); ++ttI) {
+ 			if(t == ttI->second) {
+@@ -348,6 +353,9 @@ _repeat:
+ 		}
+ 		printf("[scan] tpid ready: %" PRIx64 "\n", TsidOnid);
+ 	}
++	/* After the first usable lock, process the NIT-discovered entries normally. */
++	if (probe_until_lock && lock_probed)
++		probe_until_lock = false;
+ 	if((flags & SCAN_NIT) && AddFromNit())
+ 		goto _repeat;
+ 
+@@ -471,7 +479,14 @@ bool CServiceScan::ScanProvider(t_satellite_position satellitePosition)
+ 		AddTransponder(tI->first, &tI->second.feparams);
+ 	}
+ 
+-	ReadNitSdt(satellitePosition);
++	if (flags & SCAN_NIT_TURBO) {
++		/* Probe until the first lock, then use its NIT before the fallback list. */
++		printf("[scan] NIT fast path: probing until first lock\n");
++		ReadNitSdt(satellitePosition, true);
++		ReadNitSdt(satellitePosition, false);
++	} else {
++		ReadNitSdt(satellitePosition);
++	}
+ 
+ 	/* channels from PAT do not have service_type set.
+ 	 * some channels set the service_type in the BAT or the NIT.

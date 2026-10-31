@@ -107,6 +107,11 @@ SRC_URI = " \
            file://0032-generic-pc-guard-null-bouquet-list.patch \
 	file://0033-common-fusion-splash.patch \
 	file://0034-core-open-main-menu-independent-of-channel-mode.patch \
+	file://0035-zapit-nit-first-lock-fast-scan.patch \
+	file://0036-scan-fta-cleanup-keeps-transponders.patch \
+	file://0037-scan-report-unique-transponder-progress.patch \
+	file://0038-scan-nit-turbo-single-discovery.patch \
+	file://0039-scan-use-turbo-for-auto-provider.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

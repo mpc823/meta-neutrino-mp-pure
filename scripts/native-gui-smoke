@@ -137,9 +137,28 @@ if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
 else
 	printf 'VISUAL: X11-Screenshot übersprungen (xwininfo/xwd fehlt)\n'
 fi
+send_key KEY_DOWN
+send_key KEY_OK
+sleep 0.5
+if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
+	window_tree="$(xwininfo -root -tree 2>/dev/null)"
+	window_id="$(awk '/"Neutrino"/ { print $1; exit }' <<<"$window_tree")"
+	[[ -n "$window_id" ]] || { tail -120 "$log" >&2; die 'Neutrino-X11-Fenster nach Menüöffnung nicht gefunden'; }
+	entry_screenshot="$run_dir/neutrino-menu-entry.xwd"
+	if ! xwd -id "$window_id" -silent -out "$entry_screenshot" 2>"$run_dir/xwd-entry.err"; then
+		cat "$run_dir/xwd-entry.err" >&2 || true
+		tail -120 "$log" >&2
+		die "Screenshot nach Menüöffnung fehlgeschlagen (Fenster ${window_id})"
+	fi
+	entry_size="$(stat -c '%s' "$entry_screenshot")"
+	((entry_size > 4096)) || die "Menü-Screenshot ist unplausibel klein: ${entry_size} Bytes"
+	printf 'MENU: KEY_DOWN/KEY_OK und zweiter Screenshot bestanden (%s Bytes)\n' "$entry_size"
+else
+	printf 'MENU: KEY_DOWN/KEY_OK zugestellt; zweiter Screenshot übersprungen\n'
+fi
 send_key KEY_EXIT
 sleep 0.5
-printf 'EINGABE: KEY_MENU und KEY_EXIT über rcsim zugestellt\n'
+printf 'EINGABE: KEY_MENU, KEY_DOWN, KEY_OK und KEY_EXIT zugestellt\n'
 
 status=000
 for _ in {1..20}; do

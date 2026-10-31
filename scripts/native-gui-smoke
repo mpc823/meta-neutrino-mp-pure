@@ -23,6 +23,16 @@ glxinfo -B >/dev/null 2> >(sed 's/^/GLX: /' >&2) || die "OpenGL/X11-Anzeige nich
 
 run_dir="$(mktemp -d "${TMPDIR:-/tmp}/neutrino-native-gui.XXXXXX")"
 pid=''
+
+# The historical native core uses a fixed event socket.  A previous crash or
+# forced test termination must not make the next run appear ready by mistake.
+if [[ -S /tmp/neutrino.sock ]]; then
+	if command -v fuser >/dev/null 2>&1 && fuser /tmp/neutrino.sock >/dev/null 2>&1; then
+		die 'Neutrino-Event-Socket wird bereits von einem Prozess verwendet'
+	fi
+	rm -f /tmp/neutrino.sock
+fi
+
 pc_no_dvb="${NEUTRINO_PC_NO_DVB:-}"
 if [[ -z "$pc_no_dvb" ]]; then
 	if compgen -G '/dev/dvb/adapter*/frontend*' >/dev/null 2>&1; then
@@ -58,7 +68,13 @@ for _ in $(seq 1 "$((start_timeout * 4))"); do
 	if ! kill -0 "$pid" 2>/dev/null; then
 		break
 	fi
-	if grep -q 'GLFB: GL thread starting' "$log" && grep -q 'render: reinit' "$log" && grep -q '\[neutrino\] initialized everything' "$log"; then
+	# Depending on the configured channel/start mode, the historic core may
+	# enter tvMode() from InitZapper before RealRun() emits its later marker.
+	# The menu/channel setup is the stable integration boundary here.  Require
+	# that plus the GL thread; do not accept a process that merely stayed alive.
+	if grep -q 'GLFB: GL thread starting' "$log" && grep -q 'render: reinit' "$log" \
+		&& (grep -q '\[neutrino\] initialized everything' "$log" \
+			|| grep -q '\[neutrino\] Creating channels lists' "$log"); then
 		started=1
 		break
 	fi
@@ -81,20 +97,42 @@ for endpoint in getchannel getbouquets; do
 	[[ "$api_status" == 200 ]] || { tail -120 "$log" >&2; die "HTTP-Control-Endpunkt ${endpoint} antwortete mit HTTP ${api_status}"; }
 done
 printf 'HTTP: getchannel/getbouquets antworten mit JSON und HTTP 200\n'
-"$rcsim" KEY_MENU
+send_key() {
+	local key=$1 attempt
+	for attempt in {1..5}; do
+		if "$rcsim" "$key"; then
+			return 0
+		fi
+		if [[ -n "$pid" ]] && ! kill -0 "$pid" 2>/dev/null; then
+			break
+		fi
+		sleep 0.5
+	done
+	tail -120 "$log" >&2
+	die "Eingabeereignis ${key} konnte nicht zugestellt werden"
+}
+
+send_key KEY_MENU
 sleep 0.5
 if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
-	window_id="$(xwininfo -root -tree 2>/dev/null | awk '/"Neutrino"/ { print $1; exit }')"
+	# Read the complete xwininfo output first.  Piping directly into awk with
+	# an early exit makes xwininfo receive SIGPIPE under pipefail (exit 141).
+	window_tree="$(xwininfo -root -tree 2>/dev/null)"
+	window_id="$(awk '/"Neutrino"/ { print $1; exit }' <<<"$window_tree")"
 	[[ -n "$window_id" ]] || { tail -120 "$log" >&2; die 'Neutrino-X11-Fenster wurde nicht gefunden'; }
 	screenshot="$run_dir/neutrino-menu.xwd"
-	xwd -id "$window_id" -silent -out "$screenshot"
+	if ! xwd -id "$window_id" -silent -out "$screenshot" 2>"$run_dir/xwd.err"; then
+		cat "$run_dir/xwd.err" >&2 || true
+		tail -120 "$log" >&2
+		die "Screenshot des Neutrino-Fensters fehlgeschlagen (Fenster ${window_id})"
+	fi
 	screenshot_size="$(stat -c '%s' "$screenshot")"
 	((screenshot_size > 4096)) || die "GUI-Screenshot ist unplausibel klein: ${screenshot_size} Bytes"
 	printf 'VISUAL: Neutrino-Fenster aufgenommen (%s Bytes, %s)\n' "$screenshot_size" "$(file -b "$screenshot")"
 else
 	printf 'VISUAL: X11-Screenshot übersprungen (xwininfo/xwd fehlt)\n'
 fi
-"$rcsim" KEY_EXIT
+send_key KEY_EXIT
 sleep 0.5
 printf 'EINGABE: KEY_MENU und KEY_EXIT über rcsim zugestellt\n'
 

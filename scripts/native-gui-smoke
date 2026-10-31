@@ -167,9 +167,32 @@ if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
 else
 	printf 'MENU: KEY_DOWN/KEY_OK zugestellt; zweiter Screenshot übersprungen\n'
 fi
+
+# Continue one level deeper. This catches a GUI that can paint the top-level
+# menu but cannot create or render a submenu/dialog after activation.
+send_key KEY_DOWN
+send_key KEY_OK
+sleep 0.5
+if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
+	window_tree="$(xwininfo -root -tree 2>/dev/null)"
+	window_id="$(awk '/"Neutrino"/ { print $1; exit }' <<<"$window_tree")"
+	[[ -n "$window_id" ]] || { tail -120 "$log" >&2; die 'Neutrino-X11-Fenster im Untermenü nicht gefunden'; }
+	submenu_screenshot="$run_dir/neutrino-submenu.xwd"
+	if ! xwd -id "$window_id" -silent -out "$submenu_screenshot" 2>"$run_dir/xwd-submenu.err"; then
+		cat "$run_dir/xwd-submenu.err" >&2 || true
+		tail -120 "$log" >&2
+		die "Screenshot des Neutrino-Untermenüs fehlgeschlagen (Fenster ${window_id})"
+	fi
+	submenu_size="$(stat -c '%s' "$submenu_screenshot")"
+	((submenu_size > 4096)) || die "Untermenü-Screenshot ist unplausibel klein: ${submenu_size} Bytes"
+	check_screenshot_pixels "$submenu_screenshot"
+	printf 'SUBMENU: zweiter KEY_DOWN/KEY_OK und Screenshot bestanden (%s Bytes)\n' "$submenu_size"
+else
+	printf 'SUBMENU: zweiter KEY_DOWN/KEY_OK zugestellt; Screenshot übersprungen\n'
+fi
 send_key KEY_EXIT
 sleep 0.5
-printf 'EINGABE: KEY_MENU, KEY_DOWN, KEY_OK und KEY_EXIT zugestellt\n'
+printf 'EINGABE: Hauptmenü, Untermenü, KEY_EXIT und kontrollierter Shutdown bestanden\n'
 
 status=000
 for _ in {1..20}; do

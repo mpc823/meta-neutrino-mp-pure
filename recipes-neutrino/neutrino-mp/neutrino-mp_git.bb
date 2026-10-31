@@ -106,6 +106,7 @@ SRC_URI = " \
            file://0031-generic-pc-skip-hdd-startup-control.patch \
            file://0032-generic-pc-guard-null-bouquet-list.patch \
 	file://0033-common-fusion-splash.patch \
+	file://0034-core-open-main-menu-independent-of-channel-mode.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: mpc823 <11076149+mpc823@users.noreply.github.com>
+Date: Sat, 31 Oct 2026 00:00:00 +0000
+Subject: [PATCH] core: open main menu independent of channel mode
+
+RC_setup (KEY_MENU) was handled only inside the TV/radio mode branch. On a
+PC without a channel source the core can remain in another mode, so the key
+was accepted but no menu was shown. Handle the common main-menu action before
+mode-specific dispatch while retaining the existing minimode policy.
+---
+ src/neutrino.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/neutrino.cpp b/src/neutrino.cpp
+index 0000000..1111111 100644
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2689,0 +2690,5 @@ void CNeutrinoApp::RealRun()
++		if (msg == CRCInput::RC_setup && !g_settings.minimode) {
++			showMainMenu();
++			continue;
++		}
++

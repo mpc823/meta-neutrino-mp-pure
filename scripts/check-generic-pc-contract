@@ -8,7 +8,8 @@ fail() { printf 'ERROR: %s\n' "$*" >&2; errors=$((errors + 1)); }
 # Keep the historical compile-time no-DVB switch out of the project.  Build
 # artifacts outside the repository are deliberately not scanned here; each
 # native build wrapper must validate its own generated tree separately.
-legacy="NEUTRINO_GENERIC_PC_NO_DVB"
+# Split the legacy spelling so this checker itself does not become a match.
+legacy="NEUTRINO_GENERIC_PC_""NO_DVB"
 scan_paths=(
 	"$repo/scripts" "$repo/docs" "$repo/recipes-neutrino" "$repo/recipes-local"
 	"$repo/conf" "$repo/tests" "$repo/Makefile" "$repo/MASTER_TODO.md"

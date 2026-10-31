@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+
+[[ -n "${NEUTRINO_NATIVE_BIN:-}" ]] || die 'NEUTRINO_NATIVE_BIN fehlt'
+[[ -x "$NEUTRINO_NATIVE_BIN" ]] || die "Neutrino-Binary fehlt: $NEUTRINO_NATIVE_BIN"
+[[ -x "${NEUTRINO_NATIVE_RCSIM:-}" ]] || die 'NEUTRINO_NATIVE_RCSIM fehlt oder ist nicht ausführbar'
+
+if pgrep -x neutrino >/dev/null 2>&1; then
+	die 'ein Neutrino-Prozess läuft bereits; parallelen Test verhindert'
+fi
+
+printf '%s\n' 'REGRESSION: native x86-64 Headless-Prüfung'
+"$repo/scripts/native-x86-headless"
+
+printf '%s\n' 'REGRESSION: Generic-PC GUI ohne lokalen DVB-Tuner'
+NEUTRINO_PC_NO_DVB=1 \
+	NEUTRINO_NATIVE_BIN="$NEUTRINO_NATIVE_BIN" \
+	NEUTRINO_NATIVE_RCSIM="$NEUTRINO_NATIVE_RCSIM" \
+	"$repo/scripts/native-gui-smoke"
+
+if pgrep -x neutrino >/dev/null 2>&1; then
+	die 'GUI-Test hinterließ einen Neutrino-Prozess'
+fi
+if [[ -S /tmp/neutrino.sock ]]; then
+	die 'GUI-Test hinterließ einen Event-Socket'
+fi
+
+printf '%s\n' 'PASS: native x86-64 Headless-/GUI-Regression bestanden'

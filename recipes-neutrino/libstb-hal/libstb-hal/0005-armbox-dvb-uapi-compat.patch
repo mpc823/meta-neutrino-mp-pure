@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Neutrino maintainers <maintainers@example.invalid>
+Date: Fri, 30 Oct 2026 11:24:00 +0100
+Subject: [PATCH] libstb-hal: keep armbox buildable with modern DVB headers
+
+The legacy Broadcom driver-specific source-selection ioctl and frame-rate
+ioctl are not present in current Linux UAPI headers. Keep the source
+selection when the ABI is available, and provide the historical frame-rate
+request number for the driver-specific video device.
+
+Upstream-Status: Inappropriate [legacy vendor ABI compatibility]
+---
+ libarmbox/dmx.cpp     | 11 +++++++++++
+ libarmbox/video_lib.h |  4 ++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/libarmbox/dmx.cpp b/libarmbox/dmx.cpp
+--- a/libarmbox/dmx.cpp
++++ b/libarmbox/dmx.cpp
+@@ -157,10 +157,14 @@
+ 		/* this should not change anything... */
+ 		int n = DMX_SOURCE_FRONT0 + devnum;
+ 		lt_info("%s: setting %s to source %d\n", __func__, devname[devnum], n);
++ #ifdef DMX_SET_SOURCE
+ 		if (ioctl(fd, DMX_SET_SOURCE, &n) < 0)
+ 			lt_info("%s DMX_SET_SOURCE failed!\n", __func__);
+ 		else
+ 			init[devnum] = true;
++ #else
++		init[devnum] = true;
++ #endif
+ 	}
+ 	if (buffersize == 0)
+ 		buffersize = 0xffff; // may or may not be reasonable  --martii
+diff --git a/libarmbox/video_lib.h b/libarmbox/video_lib.h
+--- a/libarmbox/video_lib.h
++++ b/libarmbox/video_lib.h
+@@ -2,6 +2,10 @@
+ #define _VIDEO_TD_H
+ 
+ #include <linux/dvb/video.h>
++#ifndef VIDEO_GET_FRAME_RATE
++#define VIDEO_GET_FRAME_RATE _IOR('o', 56, unsigned int)
++#endif
++
+ #include "../common/cs_types.h"
+ #include "dmx_lib.h"
+ 
+-- 
+2.43.0
+

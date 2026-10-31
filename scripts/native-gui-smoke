@@ -10,6 +10,15 @@ start_timeout="${NEUTRINO_NATIVE_GUI_START_TIMEOUT:-60}"
 shutdown_timeout="${NEUTRINO_NATIVE_GUI_SHUTDOWN_TIMEOUT:-20}"
 
 die() { printf 'FEHLER: %s\n' "$*" >&2; exit 1; }
+
+check_screenshot_pixels() {
+	local image=$1 nonzero distinct
+	# Skip the XWD header and inspect the raw pixel payload.  A plausible file
+	# size alone would also accept an empty or solid-color framebuffer.
+	nonzero="$(tail -c +1025 "$image" | od -An -tu1 | awk '{ for (i = 1; i <= NF; i++) if ($i != 0) n++ } END { print n + 0 }')"
+	distinct="$(tail -c +1025 "$image" | od -An -tu1 | awk '{ for (i = 1; i <= NF; i++) seen[$i] = 1 } END { for (v in seen) n++ ; print n + 0 }')"
+	(( nonzero > 1000 && distinct >= 4 )) || die "Screenshot enthält keine plausible OSD-Pixeldaten: nonzero=${nonzero}, distinct=${distinct}"
+}
 [[ -n "$binary" ]] || die 'NEUTRINO_NATIVE_BIN muss auf das installierte Full-Core-Programm zeigen'
 [[ -x "$binary" ]] || die "GUI-Binary fehlt oder ist nicht ausführbar: $binary"
 [[ -n "$display_name" ]] || die 'DISPLAY ist nicht gesetzt; X11 oder Xvfb bereitstellen'
@@ -133,6 +142,7 @@ if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
 	fi
 	screenshot_size="$(stat -c '%s' "$screenshot")"
 	((screenshot_size > 4096)) || die "GUI-Screenshot ist unplausibel klein: ${screenshot_size} Bytes"
+	check_screenshot_pixels "$screenshot"
 	printf 'VISUAL: Neutrino-Fenster aufgenommen (%s Bytes, %s)\n' "$screenshot_size" "$(file -b "$screenshot")"
 else
 	printf 'VISUAL: X11-Screenshot übersprungen (xwininfo/xwd fehlt)\n'
@@ -152,6 +162,7 @@ if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then
 	fi
 	entry_size="$(stat -c '%s' "$entry_screenshot")"
 	((entry_size > 4096)) || die "Menü-Screenshot ist unplausibel klein: ${entry_size} Bytes"
+	check_screenshot_pixels "$entry_screenshot"
 	printf 'MENU: KEY_DOWN/KEY_OK und zweiter Screenshot bestanden (%s Bytes)\n' "$entry_size"
 else
 	printf 'MENU: KEY_DOWN/KEY_OK zugestellt; zweiter Screenshot übersprungen\n'

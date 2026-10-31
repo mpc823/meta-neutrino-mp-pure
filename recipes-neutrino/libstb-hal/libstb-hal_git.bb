@@ -42,6 +42,12 @@ PACKAGES += "${PN}-bin"
 
 LIBSTB_HAL_GIT ?= "git://github.com/neutrino-mp/libstb-hal.git;protocol=https;nobranch=1"
 
+# The historical Broadcom ARM-box backend is maintained in the pinned
+# cst-next tree.  It is the only verified libstb-hal source here that
+# contains the HD51 / Nexus / /proc/stb implementation.  Keep it scoped to
+# HD51; all other machines continue to use the common upstream tree below.
+LIBSTB_HAL_GIT:hd51 = "git://github.com/TangoCash/libstb-hal-cst-next.git;protocol=https;nobranch=1"
+
 SRC_URI = " \
 	${LIBSTB_HAL_GIT} \
 	file://blank_480.mpg \
@@ -50,7 +56,13 @@ SRC_URI = " \
 	file://0001-raspi-implement-get-video-system.patch \
 	file://0002-add-video-display-capabilities.patch \
 	file://0003-generic-pc-ffmpeg6-compat.patch \
+	file://0004-generic-hd51-boxmodel.patch \
 "
+
+SRC_URI:hd51 = "${LIBSTB_HAL_GIT};destsuffix=git file://COPYING.GPL file://0005-armbox-dvb-uapi-compat.patch file://0006-armbox-gstreamer-pkgconfig.patch"
+SRCREV:hd51 = "e93920680b66ddc356ebf8c97d86df660f167616"
+LIC_FILES_CHKSUM:hd51 = "file://${UNPACKDIR}/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
+S:hd51 = "${UNPACKDIR}/git${@''}"
 
 # the build system is not really broken wrt separate builddir,
 # but I want it to build inside the source for various reasons :-)
@@ -72,10 +84,14 @@ EXTRA_OECONF += "\
 EXTRA_OECONF:append:spark = "--with-boxtype=spark"
 EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
 EXTRA_OECONF:append:raspberrypi2 = "--with-boxtype=generic --with-boxmodel=raspi"
-EXTRA_OECONF:append:hd51 = " --with-boxtype=generic --with-boxmodel=hd51"
 EXTRA_OECONF:append:raspberrypi = " --disable-clutter"
 EXTRA_OECONF:append:raspberrypi2 = " --disable-clutter"
 EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
+
+# cst-next selects the verified Broadcom ARM-box HAL.  Do not pull desktop
+# OpenGL, GLUT, GLEW or libao into this embedded target.
+EXTRA_OECONF:hd51 = "--enable-maintainer-mode --disable-silent-rules --enable-shared --with-boxtype=hd51 --with-boxmodel=hd51 --enable-gstreamer_10"
+DEPENDS:append:hd51 = " alsa-lib gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-bad"
 
 do_configure:prepend() {
 	export AUTOMAKE="automake --foreign"

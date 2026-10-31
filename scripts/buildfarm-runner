@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root="${NEUTRINO_BUILDFARM_ROOT:-/srv/neutrino-build}"
+source_dir="$root/work/meta-neutrino-mp-pure"
+kas_bin="$root/kas-venv/bin/kas"
+machine="${NEUTRINO_BUILDFARM_MACHINE:-hd51}"
+target="${NEUTRINO_BUILD_TARGET:-neutrino-image}"
+job_id="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+job_dir="$root/jobs/$job_id"
+lock_file="$root/locks/$machine.lock"
+
+status() {
+	local state="$1" rc="${2:-}"
+	printf 'state=%s\nrun_id=%s\nmachine=%s\ntarget=%s\nexit_code=%s\n' "$state" "$job_id" "$machine" "$target" "$rc" >"$job_dir/status"
+}
+fail() { printf 'ERROR: %s\n' "$*" >&2; exit 2; }
+
+case "${1:-run}" in
+	status)
+		latest="$(find "$root/jobs" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2- || true)"
+		[[ -n "$latest" ]] || { echo 'state=NONE'; exit 0; }
+		cat "$latest/status" 2>/dev/null || echo 'state=UNKNOWN'
+		printf 'log=%s/build.log\n' "$latest"
+		if [[ -f "$latest/pid" ]] && kill -0 "$(cat "$latest/pid")" 2>/dev/null; then
+			echo 'process=alive'
+		elif grep -q '^state=RUNNING$' "$latest/status" 2>/dev/null; then
+			echo 'process=unknown (running state has no valid pid)'
+		else
+			echo 'process=not-alive'
+		fi
+		[[ -f "$latest/build.log" ]] && { echo 'log_tail:'; tail -n 8 "$latest/build.log"; }
+		exit 0
+		;;
+	fail-test)
+		mkdir -p "$job_dir" "$root/locks"
+		status STARTED
+		printf 'INTENTIONAL_BUILD_FAILURE\n' >&2
+		status FAILED 42
+		echo 42 >"$job_dir/exit_code"
+		exit 42
+		;;
+	preflight)
+		mkdir -p "$job_dir" "$root/locks"
+		mkdir -p "$root/work/.neutrino-build/$machine" "$root/work/.neutrino-build/sources/$machine"
+		printf '%s\n' "$$" >"$job_dir/pid"
+		status STARTED
+		status RUNNING
+		{
+			printf 'run_id=%s\nsource=%s\ncommand=kas shell ... -c bitbake -p neutrino-image\n' "$job_id" "$source_dir"
+			cd "$source_dir"
+			PATH="$root/kas-venv/bin:$PATH" KAS_BUILD_DIR="$root/work/.neutrino-build/$machine" KAS_WORK_DIR="$root/work/.neutrino-build/sources/$machine" "$kas_bin" shell "$source_dir/kas/hd51-wrynose.yml" -c 'bitbake -p neutrino-image'
+		} >"$job_dir/build.log" 2>&1 || rc=$?
+		rc="${rc:-0}"
+		if [[ "$rc" -eq 0 ]]; then status SUCCESS 0; else status FAILED "$rc"; fi
+		echo "$rc" >"$job_dir/exit_code"
+		exit "$rc"
+		;;
+	run)
+		mkdir -p "$job_dir" "$root/locks"
+		[[ -x "$kas_bin" ]] || fail "KAS not found: $kas_bin"
+		[[ -d "$source_dir/.git" || -f "$source_dir/.buildfarm/manifest.txt" ]] || fail 'source tree is not synchronized'
+		exec 9>"$lock_file"
+		flock -n 9 || fail "another $machine build is active"
+		printf '%s\n' "$$" >"$job_dir/pid"
+		status STARTED
+		trap 'status ABORTED 130; exit 130' INT TERM HUP
+		status RUNNING
+		{
+			printf 'run_id=%s\nsource=%s\ncommand=PATH=%s:$PATH NEUTRINO_BUILD_ROOT=%s NEUTRINO_BUILD_TARGET=%s scripts/setup-build %s\n' "$job_id" "$source_dir" "$root/kas-venv/bin" "$root/work/.neutrino-build" "$target" "$machine"
+			cd "$source_dir"
+			PATH="$root/kas-venv/bin:$PATH" NEUTRINO_BUILD_ROOT="$root/work/.neutrino-build" NEUTRINO_BUILD_TARGET="$target" ./scripts/setup-build "$machine"
+		} >"$job_dir/build.log" 2>&1 || rc=$?
+		rc="${rc:-0}"
+		if [[ "$rc" -eq 0 ]]; then status SUCCESS 0; else status FAILED "$rc"; fi
+		echo "$rc" >"$job_dir/exit_code"
+		exit "$rc"
+		;;
+	*) fail 'usage: buildfarm-runner {run|status|fail-test}' ;;
+esac

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+host="${NEUTRINO_BUILDFARM_HOST:-192.168.0.68}"
+user="${NEUTRINO_BUILDFARM_USER:-codex}"
+remote_root="${NEUTRINO_BUILDFARM_ROOT:-/srv/neutrino-build}"
+identity="${NEUTRINO_BUILDFARM_IDENTITY:-${HOME}/.ssh/id_ed25519_imac_build}"
+allow_dirty=0
+dry_run=0
+
+usage() {
+	cat <<'EOF'
+Usage: scripts/buildfarm-sync [--working-tree] [--dry-run]
+
+Synchronizes the project to the pinned remote build worker. By default the
+worktree must be clean. --working-tree explicitly includes local tracked and
+untracked project changes, but never build directories or external layer trees.
+EOF
+}
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+while (($#)); do
+	case "$1" in
+		--working-tree) allow_dirty=1 ;;
+		--dry-run) dry_run=1 ;;
+		-h|--help) usage; exit 0 ;;
+		*) usage >&2; exit 2 ;;
+	esac
+	shift
+done
+
+command -v git >/dev/null || die 'git is required'
+command -v rsync >/dev/null || die 'rsync is required'
+[[ -r "$identity" ]] || die "SSH identity not readable: $identity"
+git -C "$repo" rev-parse --verify HEAD >/dev/null || die 'not a Git worktree'
+
+if pgrep -x bitbake >/dev/null 2>&1 || pgrep -x kas >/dev/null 2>&1; then
+	die 'a local BitBake/KAS process is active; synchronization is refused'
+fi
+
+commit="$(git -C "$repo" rev-parse HEAD)"
+branch="$(git -C "$repo" branch --show-current || true)"
+status_file="$(mktemp)"
+trap 'rm -f "$status_file"' EXIT
+git -C "$repo" status --porcelain --untracked-files=all >"$status_file"
+if [[ -s "$status_file" && "$allow_dirty" -ne 1 ]]; then
+	cat "$status_file" >&2
+	die 'working tree is dirty; use --working-tree only after reviewing the changes'
+fi
+
+remote_source="$remote_root/work/meta-neutrino-mp-pure"
+remote_build="$remote_root/work/.neutrino-build"
+remote_jobs="$remote_root/jobs"
+ssh_cmd=(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -i "$identity" "$user@$host")
+rsync_cmd=(rsync -a --human-readable --info=stats2 --delete
+	--exclude='.git/' --exclude='.neutrino-build/' --exclude='build/' --exclude='tmp/'
+	--exclude='downloads/' --exclude='sstate-cache/' --exclude='*.log'
+	--exclude='bitbake/' --exclude='openembedded-core/' --exclude='meta-openembedded/'
+	--exclude='meta-yocto/' --exclude='oe-alliance/'
+	-e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -i $identity")
+
+if [[ "$dry_run" -eq 1 ]]; then
+	printf 'DRY-RUN: host=%s user=%s commit=%s branch=%s dirty=%s\n' "$host" "$user" "$commit" "$branch" "$(test -s "$status_file" && echo yes || echo no)"
+	exit 0
+fi
+
+"${ssh_cmd[@]}" "mkdir -p '$remote_root/work' '$remote_jobs' '$remote_root/bin' '$remote_root/locks' && test -f '$remote_root/.buildfarm-root' || { printf 'neutrino-buildfarm\n' > '$remote_root/.buildfarm-root'; }"
+"${rsync_cmd[@]}" "$repo/" "$user@$host:$remote_source/"
+
+manifest="$(mktemp)"
+trap 'rm -f "$status_file" "$manifest"' EXIT
+{
+	printf 'commit=%s\nbranch=%s\nsynchronized_at=%s\n' "$commit" "$branch" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	printf 'working_tree=%s\n' "$(test -s "$status_file" && echo dirty || echo clean)"
+	printf 'excluded_external_layers=bitbake openembedded-core meta-openembedded meta-yocto oe-alliance\n'
+	if [[ -s "$status_file" ]]; then
+		printf '\n[git-status]\n'; sed 's/^/ /' "$status_file"
+	fi
+} >"$manifest"
+"${rsync_cmd[@]}" "$repo/scripts/buildfarm-runner" "$user@$host:$remote_root/bin/buildfarm-runner"
+"${ssh_cmd[@]}" "chmod 0755 '$remote_root/bin/buildfarm-runner'; mkdir -p '$remote_source/.buildfarm'; cat > '$remote_source/.buildfarm/manifest.txt'" <"$manifest"
+
+printf 'SYNCED: host=%s source=%s commit=%s mode=%s\n' "$host" "$remote_source" "$commit" "$(test -s "$status_file" && echo working-tree || echo commit)"

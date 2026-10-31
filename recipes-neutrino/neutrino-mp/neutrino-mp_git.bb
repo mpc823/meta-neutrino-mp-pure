@@ -10,6 +10,7 @@ LIC_FILES_CHKSUM = "file://${UNPACKDIR}/COPYING.GPL;md5=751419260aa954499f7abaab
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 PREFERRED_PROVIDER_virtual/stb-hal-libs ?= "libstb-hal"
+PREFERRED_PROVIDER_virtual/stb-hal-libs:coolstream ?= "libcoolstream"
 
 DEPENDS += " \
 	update-rc.d-native \
@@ -36,6 +37,8 @@ RDEPENDS:${PN} += " \
 # maybe this should rather be in the image dependencies? it is not needed for building...
 DEPENDS:append:tripledragon = " \
 	td-dvb-wrapper \
+	directfb \
+	triple-sdk \
 "
 # need to check ffmpegdec on triple...
 DEPENDS:append:tripledragon = " \
@@ -46,7 +49,9 @@ DEPENDS:append:tripledragon = " \
 	libvorbis \
 "
 RDEPENDS:${PN}:append:tripledragon = " kernel-module-td-dvb-frontend"
+RDEPENDS:${PN}:append:tripledragon += " directfb triple-sdk"
 RDEPENDS:${PN}:append:spark = " spark-fp"
+RDEPENDS:${PN}:append:spark7162 = " spark-fp"
 
 RCONFLICTS:${PN} = "neutrino-hd2"
 
@@ -88,6 +93,17 @@ SRC_URI = " \
            file://0019-generic-pc-remove-unconditional-zapit-dialog.patch \
            file://0020-generic-pc-guard-empty-channel-list.patch \
            file://0021-generic-pc-guard-no-channel-input.patch \
+           file://0022-hal-frontpanel-input-and-dvb-device-selection.patch \
+           file://0023-dvb-stream-include-limits.patch \
+           file://0024-frontpanel-wakeup-driver-boundary.patch \
+           file://0025-frontpanel-power-driver-source.patch \
+           file://0026-remove-static-dvb-device-macros.patch \
+           file://0027-remove-dead-proc-stb-wakeup-code.patch \
+           file://0028-platform-lifecycle-boundary.patch \
+           file://0029-neutral-system-info-names.patch \
+           file://0030-remove-dead-dbox2-decoder-branches.patch \
+           file://0031-generic-pc-skip-hdd-startup-control.patch \
+           file://0032-generic-pc-guard-null-bouquet-list.patch \
 "
 
 # the build system is not really broken wrt separate builddir,

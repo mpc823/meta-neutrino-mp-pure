@@ -1,0 +1,24 @@
+Subject: [PATCH] generic-pc: do not touch host disks during startup
+
+The receiver startup path applies hdparm/hd-idle settings to its expected
+embedded disks before entering CNeutrinoApp::RealRun().  On a Linux PC this
+can probe unrelated host disks, fail with permissions, or delay the GUI.
+Generic-PC keeps the HDD menu and recording support; only this automatic
+receiver startup action is omitted.
+
+Upstream-Status: Inappropriate [platform-specific startup policy]
+
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2499,9 +2499,11 @@ int CNeutrinoApp::Run(int argc, char **argv)
+ 
+ 	InitZapper();
+ 
++#if !defined(HAVE_GENERIC_HARDWARE)
+ 	CHDDDestExec * hdd = new CHDDDestExec();
+ 	hdd->exec(NULL, "");
+ 	delete hdd;
++#endif
+ 
+ 	hintBox->hide(); // InitZapper also displays a hintbox
+ 	delete hintBox;

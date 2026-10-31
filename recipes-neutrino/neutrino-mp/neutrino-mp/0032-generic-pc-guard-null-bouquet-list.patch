@@ -1,0 +1,22 @@
+Subject: [PATCH] generic-pc: guard channel-list input without local services
+
+Generic-PC may have no local DVB services while still providing web radio,
+IPTV or other GUI functionality.  In that state the common input handler can
+receive KEY_OK before a bouquet list exists.  Treat it as an unavailable
+channel-list action instead of dereferencing a null pointer.
+
+Upstream-Status: Inappropriate [platform capability boundary]
+
+--- a/src/neutrino.cpp
++++ b/src/neutrino.cpp
+@@ -2949,5 +2949,10 @@ int CNeutrinoApp::showChannelList(const neutrino_msg_t _msg, bool from_menu)
+ 	}
+ 	channelList_painted = true;
+ 
++#if defined(HAVE_GENERIC_HARDWARE)
++	if (!bouquetList)
++		return menu_return::RETURN_NONE;
++#endif
++
+ 	neutrino_msg_t msg = _msg;
+ 	InfoClock->enableInfoClock(false);//TODO: use callback in channel list class

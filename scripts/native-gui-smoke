@@ -105,6 +105,20 @@ for _ in {1..20}; do
 	sleep 0.25
 done
 [[ -S /tmp/neutrino.sock ]] || { tail -120 "$log" >&2; die 'Neutrino-Event-Socket wurde nicht angelegt'; }
+# The event socket exists before CNeutrinoApp has finished building its menus.
+# Do not send KEY_MENU into the startup information dialog: wait for the
+# channel/menu setup boundary that is emitted by the real core.
+menus_ready=0
+for _ in $(seq 1 "$((start_timeout * 4))"); do
+	if grep -q '\[neutrino\] all channels took:' "$log"; then
+		menus_ready=1
+		break
+	fi
+	kill -0 "$pid" 2>/dev/null || break
+	sleep 0.25
+done
+((menus_ready == 1)) || { tail -120 "$log" >&2; die 'Neutrino-Menü-/Senderlisteninitialisierung wurde nicht erreicht'; }
+sleep 0.5
 for endpoint in getchannel getbouquets; do
 	api_status="$(curl --connect-timeout 1 --max-time 3 -sS -o "$run_dir/${endpoint}.json" \
 		-w '%{http_code}' "http://127.0.0.1:${web_port}/control/${endpoint}?format=json" 2>/dev/null || true)"
@@ -126,6 +140,23 @@ send_key() {
 	die "Eingabeereignis ${key} konnte nicht zugestellt werden"
 }
 
+# The first event lets the core leave its startup channel-list path. Wait for
+# the actual CNeutrinoApp boundary before asserting GUI/menu state.
+send_key KEY_MENU
+initialized=0
+for _ in $(seq 1 "$((start_timeout * 4))"); do
+	if grep -q '\[neutrino\] initialized everything' "$log"; then
+		initialized=1
+		break
+	fi
+	kill -0 "$pid" 2>/dev/null || break
+	sleep 0.25
+done
+((initialized == 1)) || { tail -120 "$log" >&2; die 'CNeutrinoApp-Initialisierung wurde nicht erreicht'; }
+# A no-tuner/empty-TV-list run can leave a modal startup or "no channels"
+# dialog on screen. Close that modal before opening the real main menu.
+send_key KEY_EXIT
+sleep 0.5
 send_key KEY_MENU
 sleep 0.5
 if command -v xwininfo >/dev/null 2>&1 && command -v xwd >/dev/null 2>&1; then

@@ -1,5 +1,12 @@
 # Master-TODO: native x86-64-Entwicklung
 
+## Dauerhafte Entwicklungsregel
+
+- [x] Vor Eigenentwicklung zuerst vorhandene Neutrino-/HAL-/BSP-Lösungen
+      prüfen und nur nachgewiesen passende, lizenzrechtlich nutzbare Lösungen
+      wiederverwenden; Quellenstände sind in
+      `docs/NEUTRINO_ECOSYSTEM_REUSE.md` festgehalten.
+
 ## Erledigt
 
 - [x] Generic-PC-HAL als headless statisches Archiv bauen.

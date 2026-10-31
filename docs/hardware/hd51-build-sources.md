@@ -70,8 +70,10 @@ Not ported yet:
 
 The current implementation milestone is the pinned OE-Alliance Wrynose
 manifest in `kas/hd51-wrynose.yml`. It uses the open machine/image metadata
-and declares the closed BSP providers as explicit external fetches. The first
-BitBake parse and build remain to be run on a host with KAS/BitBake available.
+and declares the closed BSP providers as explicit external fetches. The
+broader Neutrino ecosystem review is maintained in
+`docs/NEUTRINO_ECOSYSTEM_REUSE.md`; its pinned repositories are comparison
+sources and are not silently added as extra Wrynose layers.
 
 ## References
 

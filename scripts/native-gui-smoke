@@ -51,6 +51,11 @@ cleanup() {
 		kill -KILL "$pid" 2>/dev/null || true
 		wait "$pid" 2>/dev/null || true
 	fi
+	# The legacy core owns a fixed socket path and may leave the pathname
+	# behind after a normal shutdown.  Remove it only when no process uses it.
+	if [[ -S /tmp/neutrino.sock ]] && { ! command -v fuser >/dev/null 2>&1 || ! fuser /tmp/neutrino.sock >/dev/null 2>&1; }; then
+		rm -f /tmp/neutrino.sock
+	fi
 	find "$run_dir" -depth -delete 2>/dev/null || true
 }
 trap cleanup EXIT HUP INT TERM

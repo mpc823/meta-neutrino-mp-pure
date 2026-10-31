@@ -45,3 +45,7 @@ EXTRA_OECONF:append:spark = "\
 EXTRA_OECONF:append:spark7162 = "\
 	--with-boxtype=spark \
 "
+
+EXTRA_OECONF:append:hd51 = "\
+	--with-boxtype=armbox --with-boxmodel=hd51 \
+"

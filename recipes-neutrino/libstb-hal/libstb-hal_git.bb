@@ -29,6 +29,7 @@ DEPENDS:append:raspberrypi2 = "virtual/egl"
 DEPENDS:append:tripledragon = "directfb triple-sdk"
 
 RDEPENDS:${PN} = "ffmpeg"
+RDEPENDS:${PN}:append:hd51 = " gstreamer1.0-plugins-base gstreamer1.0-plugins-bad"
 RDEPENDS:${PN}-dev:append:spark = " tdt-driver-dev"
 RDEPENDS:${PN}-dev:append:tripledragon = " triple-sdk-dev"
 

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source_dir="${1:-}"
+errors=0
+fail() { printf 'ERROR: %s\n' "$*" >&2; errors=$((errors + 1)); }
+require_text() {
+	local file="$1" text="$2"
+	rg -Fq -- "$text" "$root/$file" || fail "$file lacks: $text"
+}
+
+require_text recipes-neutrino/neutrino-mp/neutrino-mp.inc '--with-boxtype=armbox --with-boxmodel=hd51'
+require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'LIBSTB_HAL_GIT:hd51'
+require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'SRCREV:hd51'
+require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'alsa-lib'
+require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'openssl'
+require_text recipes-neutrino/libstb-hal/libstb-hal_git.bb 'RDEPENDS:${PN}:append:hd51'
+
+for file in \
+	recipes-neutrino/libstb-hal/libstb-hal/0005-armbox-dvb-uapi-compat.patch \
+	recipes-neutrino/libstb-hal/libstb-hal/0006-armbox-gstreamer-pkgconfig.patch \
+	recipes-neutrino/neutrino-mp/neutrino-mp/neutrino.init \
+	recipes-neutrino/neutrino-mp/neutrino-mp/custom-poweroff.init \
+	recipes-neutrino/neutrino-mp/neutrino-mp/mount.mdev; do
+	[[ -f "$root/$file" ]] || fail "required project file missing: $file"
+done
+
+hd51_deps="$(sed -n '/^DEPENDS:append:hd51/,/^$/p' "$root/recipes-neutrino/libstb-hal/libstb-hal_git.bb")"
+if grep -Eiq '(^|[[:space:]])(glut|glew|libao|freeglut)([[:space:]"\\]|$)' <<<"$hd51_deps"; then
+	fail 'HD51 dependency block contains a desktop OpenGL/audio dependency'
+fi
+
+if [[ -n "$source_dir" ]]; then
+	[[ -d "$source_dir/.git" ]] || fail "source directory is not a Git tree: $source_dir"
+	for patch in 0005-armbox-dvb-uapi-compat.patch 0006-armbox-gstreamer-pkgconfig.patch; do
+		if ! git -C "$source_dir" apply --check "$root/recipes-neutrino/libstb-hal/libstb-hal/$patch"; then
+			fail "patch does not apply to source tree: $patch"
+		fi
+	done
+fi
+
+if (( errors )); then
+	printf 'HD51_INTEGRATION=FAIL errors=%d\n' "$errors" >&2
+	exit 1
+fi
+printf 'HD51_INTEGRATION=PASS source_patch_checks=%s\n' "$( [[ -n "$source_dir" ]] && echo performed || echo skipped )"

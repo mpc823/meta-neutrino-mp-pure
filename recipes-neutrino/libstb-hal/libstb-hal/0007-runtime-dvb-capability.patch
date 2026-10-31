@@ -1,0 +1,121 @@
+diff --git a/common/Makefile.am b/common/Makefile.am
+--- a/common/Makefile.am
++++ b/common/Makefile.am
+@@ -8,7 +8,8 @@ AM_CXXFLAGS += \
+ 	-I $(top_srcdir)/include
+ 
+ libcommon_la_SOURCES = \
+ 	ca.cpp \
+ 	lt_debug.c \
+-	proc_tools.c \
+-	pwrmngr.cpp
++	proc_tools.c \
++	pwrmngr.cpp \
++	runtime_caps.c
+diff --git a/common/runtime_caps.h b/common/runtime_caps.h
+new file mode 100644
+--- /dev/null
++++ b/common/runtime_caps.h
+@@ -0,0 +1,15 @@
++/* Runtime resource probes shared by all libstb-hal backends. */
++#ifndef LIBSTB_HAL_RUNTIME_CAPS_H
++#define LIBSTB_HAL_RUNTIME_CAPS_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++int hardware_has_local_dvb(void);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff --git a/common/runtime_caps.c b/common/runtime_caps.c
+new file mode 100644
+--- /dev/null
++++ b/common/runtime_caps.c
+@@ -0,0 +1,17 @@
++#include "runtime_caps.h"
++#include <stdio.h>
++#include <sys/stat.h>
++
++int hardware_has_local_dvb(void)
++{
++	char path[64];
++	struct stat st;
++	int adapter;
++
++	for (adapter = 0; adapter < 16; ++adapter) {
++		snprintf(path, sizeof(path), "/dev/dvb/adapter%d/frontend0", adapter);
++		if (stat(path, &st) == 0 && S_ISCHR(st.st_mode))
++			return 1;
++	}
++	return 0;
++}
+diff --git a/include/hardware_caps.h b/include/hardware_caps.h
+--- a/include/hardware_caps.h
++++ b/include/hardware_caps.h
+@@ -42,6 +42,7 @@ typedef struct hw_caps
+ 	char boxvendor[64];
+ 	char boxname[64];
+ 	char boxarch[64];
++	int has_local_dvb; /* frontend available when capabilities were queried */
+ } hw_caps_t;
+ 
+ hw_caps_t *get_hwcaps(void);
+int hardware_has_local_dvb(void);
++int hardware_has_local_dvb(void);
+diff --git a/generic-pc/hardware_caps.c b/generic-pc/hardware_caps.c
+--- a/generic-pc/hardware_caps.c
++++ b/generic-pc/hardware_caps.c
+@@ -39,4 +39,5 @@ hw_caps_t *get_hwcaps(void)
+ 	else
+ 		fprintf(stderr, "%s: uname() failed: %m\n", __func__);
++	caps.has_local_dvb = hardware_has_local_dvb();
+ 
+ 	return &caps;
+ }
+diff --git a/azbox/hardware_caps.c b/azbox/hardware_caps.c
+--- a/azbox/hardware_caps.c
++++ b/azbox/hardware_caps.c
+@@ -46,5 +46,6 @@ hw_caps_t *get_hwcaps(void)
+ 	else
+ 		strcpy(caps.boxname, "(unknown model)");
+ 	strcpy(caps.boxarch, "mipsel");
++	caps.has_local_dvb = hardware_has_local_dvb();
+ 
+ 	return &caps;
+ }
+diff --git a/libspark/hardware_caps.c b/libspark/hardware_caps.c
+--- a/libspark/hardware_caps.c
++++ b/libspark/hardware_caps.c
+@@ -116,4 +116,5 @@ hw_caps_t *get_hwcaps(void)
+ 		strcpy(caps.boxname, tmp);
+ 	}
++	caps.has_local_dvb = hardware_has_local_dvb();
+ 	return &caps;
+ }
+diff --git a/libtriple/hardware_caps.c b/libtriple/hardware_caps.c
+--- a/libtriple/hardware_caps.c
++++ b/libtriple/hardware_caps.c
+@@ -28,3 +28,4 @@ static hw_caps_t caps = {
+ hw_caps_t *get_hwcaps(void)
+ {
++	caps.has_local_dvb = hardware_has_local_dvb();
+ 	return &caps;
+ }
+diff --git a/raspi/hardware_caps.c b/raspi/hardware_caps.c
+--- a/raspi/hardware_caps.c
++++ b/raspi/hardware_caps.c
+@@ -36,7 +36,8 @@ hw_caps_t *get_hwcaps(void)
+ 	strcpy(caps.boxname, "Pi");
+ 	if (! uname(&u))
+ 		strncpy(caps.boxarch, u.machine, sizeof(caps.boxarch));
+ 	else
+ 		fprintf(stderr, "%s: uname() failed: %m\n", __func__);
++	caps.has_local_dvb = hardware_has_local_dvb();
+ 
+ 	return &caps;
+ }

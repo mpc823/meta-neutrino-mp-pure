@@ -1,70 +1,7 @@
 Upstream-Status: Pending
 
---- a/generic-pc/video.cpp
-+++ b/generic-pc/video.cpp
-@@ -46,7 +46,11 @@
- #if USE_CLUTTER
- #define VDEC_PIXFMT AV_PIX_FMT_BGR24
- #endif
-+#if !USE_OPENGL && !USE_CLUTTER
-+#define VDEC_PIXFMT AV_PIX_FMT_RGB32
-+#endif
- 
-+#include "ffmpeg_compat.h"
- #include "video_hal.h"
- #include "dmx_hal.h"
- #include "glfb_priv.h"
-@@ -86,7 +90,9 @@
- 
- VDec::VDec()
- {
-+#if LIBAVFORMAT_VERSION_MAJOR < 58
- 	av_register_all();
-+#endif
- 	if (!HAL_nodec)
- 		dmxbuf = (uint8_t *)malloc(DMX_BUF_SZ);
- 	bufpos = 0;
-@@ -306,7 +312,7 @@
- 	AVFormatContext *avfc = NULL;
- 	AVCodecContext *c = NULL;
- 	AVCodecParameters *p = NULL;
--	AVCodec *codec;
-+	const AVCodec *codec;
- 	AVFrame *frame, *rgbframe;
- 	AVPacket avpkt;
- 
-@@ -345,7 +351,7 @@
- 		lt_info("%s: av_read_frame < 0\n", __func__);
- 		goto out_free;
- 	}
--	len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
-+	len = hal_decode_video(c, frame, &got_frame, &avpkt);
- 	if (len < 0) {
-		lt_info("%s: avcodec_decode_video2 %d\n", __func__, len);
- 		av_packet_unref(&avpkt);
-@@ -523,11 +529,11 @@
- void VDec::run(void)
- {
- 	lt_info("====================== start decoder thread ================================\n");
--	AVCodec *codec;
-+	const AVCodec *codec;
- 	AVCodecParameters *p = NULL;
- 	AVCodecContext *c= NULL;
- 	AVFormatContext *avfc = NULL;
--	AVInputFormat *inp;
-+	const AVInputFormat *inp;
- 	AVFrame *frame, *rgbframe;
- 	uint8_t *inbuf = (uint8_t *)av_malloc(INBUF_SIZE);
- 	AVPacket avpkt;
-@@ -604,1 +610,1 @@
--		int len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
-+		int len = hal_decode_video(c, frame, &got_frame, &avpkt);
-@@ -642,1 +648,1 @@
--				int64_t vpts = av_frame_get_best_effort_timestamp(frame);
-+				int64_t vpts = frame->best_effort_timestamp;
-@@ -672,1 +678,1 @@
--					av_frame_get_best_effort_timestamp(frame));
-+					frame->best_effort_timestamp);
+diff --git a/generic-pc/audio.cpp b/generic-pc/audio.cpp
+index dd9f071..b6cb818 100644
 --- a/generic-pc/audio.cpp
 +++ b/generic-pc/audio.cpp
 @@ -22,6 +22,7 @@
@@ -75,7 +12,7 @@ Upstream-Status: Pending
  #include "audio_hal.h"
  #include "audio_priv.h"
  #include "dmx_hal.h"
-@@ -351,11 +352,13 @@
+@@ -351,11 +352,13 @@ void ADec::run()
  {
  	lt_info("====================== start decoder thread ================================\n");
  	/* libavcodec & friends */
@@ -91,12 +28,26 @@ Upstream-Status: Pending
  	AVFrame *frame;
  	uint8_t *inbuf = (uint8_t *)av_malloc(INBUF_SIZE);
  	AVPacket avpkt;
-@@ -467,1 +470,1 @@
+@@ -464,7 +467,7 @@ void ADec::run()
+ 		int gotframe = 0;
+ 		if (av_read_frame(avfc, &avpkt) < 0)
+ 			break;
 -		avcodec_decode_audio4(c, frame, &gotframe, &avpkt);
 +		hal_decode_audio(c, frame, &gotframe, &avpkt);
-@@ -488,1 +491,1 @@
+ 		if (gotframe && thread_started) {
+ 			int out_linesize;
+ 			obuf_sz = av_rescale_rnd(swr_get_delay(swr, p->sample_rate) +
+@@ -482,7 +485,7 @@ void ADec::run()
+ 			}
+ 			obuf_sz = swr_convert(swr, &obuf, obuf_sz,
+ 					      (const uint8_t **)frame->extended_data, frame->nb_samples);
 -			curr_pts = av_frame_get_best_effort_timestamp(frame);
 +			curr_pts = frame->best_effort_timestamp;
+ 			lt_debug("%s: pts 0x%" PRIx64 " %3f\n", __func__, curr_pts, curr_pts/90000.0);
+ 			int o_buf_sz = av_samples_get_buffer_size(&out_linesize, o_ch,
+ 								  obuf_sz, AV_SAMPLE_FMT_S16, 1);
+diff --git a/generic-pc/audio_priv.h b/generic-pc/audio_priv.h
+index fb09eb6..cf51792 100644
 --- a/generic-pc/audio_priv.h
 +++ b/generic-pc/audio_priv.h
 @@ -21,6 +21,7 @@
@@ -107,6 +58,91 @@ Upstream-Status: Pending
  #include <libavutil/opt.h>
  #include <libavutil/samplefmt.h>
  #include <libswresample/swresample.h>
+diff --git a/generic-pc/video.cpp b/generic-pc/video.cpp
+index f03a2a2..ffc0bcf 100644
+--- a/generic-pc/video.cpp
++++ b/generic-pc/video.cpp
+@@ -46,7 +46,11 @@ extern "C" {
+ #if USE_CLUTTER
+ #define VDEC_PIXFMT AV_PIX_FMT_BGR24
+ #endif
++#if !USE_OPENGL && !USE_CLUTTER
++#define VDEC_PIXFMT AV_PIX_FMT_RGB32
++#endif
+ 
++#include "ffmpeg_compat.h"
+ #include "video_hal.h"
+ #include "dmx_hal.h"
+ #include "glfb_priv.h"
+@@ -86,7 +90,9 @@ cVideo::cVideo(int, void *, void *, unsigned int)
+ 
+ VDec::VDec()
+ {
++#if LIBAVFORMAT_VERSION_MAJOR < 58
+ 	av_register_all();
++#endif
+ 	if (!HAL_nodec)
+ 		dmxbuf = (uint8_t *)malloc(DMX_BUF_SZ);
+ 	bufpos = 0;
+@@ -306,7 +312,7 @@ void VDec::ShowPicture(const char *fname)
+ 	AVFormatContext *avfc = NULL;
+ 	AVCodecContext *c = NULL;
+ 	AVCodecParameters *p = NULL;
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AVFrame *frame, *rgbframe;
+ 	AVPacket avpkt;
+ 
+@@ -345,7 +351,7 @@ void VDec::ShowPicture(const char *fname)
+ 		lt_info("%s: av_read_frame < 0\n", __func__);
+ 		goto out_free;
+ 	}
+-	len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
++	len = hal_decode_video(c, frame, &got_frame, &avpkt);
+ 	if (len < 0) {
+ 		lt_info("%s: avcodec_decode_video2 %d\n", __func__, len);
+ 		av_packet_unref(&avpkt);
+@@ -523,11 +529,11 @@ static int my_read(void *, uint8_t *buf, int buf_size)
+ void VDec::run(void)
+ {
+ 	lt_info("====================== start decoder thread ================================\n");
+-	AVCodec *codec;
++	const AVCodec *codec;
+ 	AVCodecParameters *p = NULL;
+ 	AVCodecContext *c= NULL;
+ 	AVFormatContext *avfc = NULL;
+-	AVInputFormat *inp;
++	const AVInputFormat *inp;
+ 	AVFrame *frame, *rgbframe;
+ 	uint8_t *inbuf = (uint8_t *)av_malloc(INBUF_SIZE);
+ 	AVPacket avpkt;
+@@ -601,7 +607,7 @@ void VDec::run(void)
+ 			continue;
+ 		}
+ 		int got_frame = 0;
+-		int len = avcodec_decode_video2(c, frame, &got_frame, &avpkt);
++		int len = hal_decode_video(c, frame, &got_frame, &avpkt);
+ 		if (len < 0) {
+ 			if (warn_d - time(NULL) > 4) {
+ 				lt_info("%s: avcodec_decode_video2 %d\n", __func__, len);
+@@ -639,7 +645,7 @@ void VDec::run(void)
+ 				}
+ 				f->width(c->width);
+ 				f->height(c->height);
+-				int64_t vpts = av_frame_get_best_effort_timestamp(frame);
++				int64_t vpts = frame->best_effort_timestamp;
+ 				/* a/v delay determined experimentally :-) */
+ #if USE_OPENGL
+ 				if (v_format == VIDEO_FORMAT_MPEG2)
+@@ -669,7 +675,7 @@ void VDec::run(void)
+ 			}
+ 			lt_debug("%s: time_base: %d/%d, ticks: %d rate: %d pts 0x%" PRIx64 "\n", __func__,
+ 					c->time_base.num, c->time_base.den, c->ticks_per_frame, dec_r,
+-					av_frame_get_best_effort_timestamp(frame));
++					frame->best_effort_timestamp);
+ 		} else
+ 			lt_info("%s: got_frame: %d stillpicture: %d\n", __func__, got_frame, stillpicture);
+ 		still_m.unlock();
 --- /dev/null
 +++ b/generic-pc/ffmpeg_compat.h
 @@ -0,0 +1,36 @@

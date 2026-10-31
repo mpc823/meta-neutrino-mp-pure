@@ -18,8 +18,18 @@ if [[ -f "$work/hal/generic-pc/ffmpeg_compat.h" ]] &&
    grep -q 'hal_decode_video' "$work/hal/generic-pc/ffmpeg_compat.h"; then
 	:
 else
-	(cd "$work/hal" && patch --fuzz=0 -p1 < "$repo/recipes-neutrino/libstb-hal/libstb-hal/0003-generic-pc-ffmpeg6-compat.patch" >/dev/null)
+	(cd "$work/hal" && patch --fuzz=3 -p1 < "$repo/recipes-neutrino/libstb-hal/libstb-hal/0003-generic-pc-ffmpeg6-compat.patch")
 fi
+
+
+(cd "$work/hal" && touch AUTHORS ChangeLog NEWS README)
+if command -v autoreconf >/dev/null 2>&1; then
+	(cd "$work/hal" && autoreconf -fi >/dev/null)
+elif [[ ! -f "$work/hal/Makefile.in" ]]; then
+	die "autoreconf fehlt und die HAL-Quelle enthält keine vorbereiteten Makefile.in-Dateien"
+fi
+(cd "$work/hal" && TUXBOX_BOXTYPE=generic BOXTYPE=generic \
+	./configure --disable-shared --disable-static --disable-clutter >/dev/null)
 sed -i 's/^#define USE_OPENGL 1/#undef USE_OPENGL/' "$work/hal/config.h"
 
 pkg-config --exists libavformat libavcodec libavutil libswresample libswscale ao \
@@ -34,6 +44,8 @@ for source in dmx.cpp video.cpp audio.cpp init.cpp playback.cpp record.cpp; do
 done
 cc -std=c11 -Wall -Wextra -I"$work/hal" -I"$work/hal/common" -I"$work/hal/include" \
   -c "$work/hal/generic-pc/hardware_caps.c" -o "$work/obj/hardware_caps.o"
+cc -std=c11 -Wall -Wextra -I"$work/hal" -I"$work/hal/common" -I"$work/hal/include" \
+	-c "$work/hal/common/runtime_caps.c" -o "$work/obj/runtime_caps.o"
 ar rcs "$work/libgeneric-headless.a" "$work"/obj/*.o
 "$repo/scripts/check-build-architecture" --compiler c++ "$work/obj" "$work/libgeneric-headless.a"
 printf 'PASS: native Generic-PC headless archive built\n'

@@ -23,8 +23,10 @@ c++ "${flags[@]}" -c "$core_source/lib/libconfigfile/configfile.cpp" \
   -o "$out_dir/configfile.o"
 cc -std=c11 -Wall -Wextra -Werror -I"$hal_source/include" \
   -c "$hal_source/generic-pc/hardware_caps.c" -o "$out_dir/hardware_caps.o"
+cc -std=c11 -Wall -Wextra -Werror -I"$hal_source/include" \
+  -c "$hal_source/common/runtime_caps.c" -o "$out_dir/runtime_caps.o"
 c++ "${flags[@]}" "$repo/tests/native-neutrino-headless.cpp" \
-  "$out_dir/abstime.o" "$out_dir/configfile.o" "$out_dir/hardware_caps.o" \
+  "$out_dir/abstime.o" "$out_dir/configfile.o" "$out_dir/hardware_caps.o" "$out_dir/runtime_caps.o" \
   -o "$out_dir/neutrino-headless"
 
 if [[ "${NEUTRINO_SANITIZE:-0}" == 1 ]]; then
@@ -32,9 +34,10 @@ if [[ "${NEUTRINO_SANITIZE:-0}" == 1 ]]; then
 	   -I"$hal_source/include" -fsanitize=address,undefined -fno-omit-frame-pointer -g)
 	 cc "${cflags[@]}" -c "$core_source/src/driver/abstime.c" -o "$out_dir/san-abstime.o"
 	 cc "${cflags[@]}" -c "$hal_source/generic-pc/hardware_caps.c" -o "$out_dir/san-hardware_caps.o"
+	 cc "${cflags[@]}" -c "$hal_source/common/runtime_caps.c" -o "$out_dir/san-runtime_caps.o"
 	 c++ "${flags[@]}" -fsanitize=address,undefined -fno-omit-frame-pointer -g \
 	   "$repo/tests/native-neutrino-headless.cpp" "$core_source/lib/libconfigfile/configfile.cpp" \
-	   "$out_dir/san-abstime.o" "$out_dir/san-hardware_caps.o" \
+	   "$out_dir/san-abstime.o" "$out_dir/san-hardware_caps.o" "$out_dir/san-runtime_caps.o" \
 	   -o "$out_dir/neutrino-headless-sanitized"
 	 ASAN_OPTIONS=detect_leaks=1 "$out_dir/neutrino-headless-sanitized" --run-ms 50
 fi

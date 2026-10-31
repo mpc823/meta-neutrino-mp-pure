@@ -1,0 +1,17 @@
+diff --git a/azbox/video.cpp b/azbox/video.cpp
+index 88649cd..910ba5e 100644
+--- a/azbox/video.cpp
++++ b/azbox/video.cpp
+@@ -268,6 +268,12 @@ int VDec::Start(void)
+ 	if (playstate == VIDEO_FREEZED)  /* in theory better, but not in practice :-) */
+ 		fop(ioctl, MPEG_VID_CONTINUE);
+ #endif
++	/* A live stream replaces a still-picture frame. */
++	if (stillpicture) {
++		lt_info("%s: stillpicture == true, doing implicit StopPicture()\\n", __func__);
++		stillpicture = false;
++		Stop(1);
++	}
+ 	playstate = VIDEO_PLAYING;
+ 	return fop(ioctl, VIDEO_PLAY);
+ }

@@ -1,0 +1,131 @@
+diff --git a/generic-pc/video_priv.h b/generic-pc/video_priv.h
+index 067d9b5..d3262d0 100644
+--- a/generic-pc/video_priv.h
++++ b/generic-pc/video_priv.h
+@@ -84,6 +84,11 @@ class VDec : public OpenThreads::Thread
+ 		void Pig(int x, int y, int w, int h);
+ 		bool GetScreenImage(unsigned char * &data, int &xres, int &yres, bool get_video = true, bool get_osd = false, bool scale_to_video = false);
+ 		SWFramebuffer *getDecBuf(void);
++		/* Return the next frame while keeping the decoder buffer locked until
++		 * releaseDecBuf().  The GL upload must not race the decoder reusing
++		 * the ring-buffer storage during a channel/resolution switch. */
++		SWFramebuffer *getDecBufLocked(void);
++		void releaseDecBuf(void);
+ 		int64_t GetPTS(void);
+ 	private:
+ 		void run();
+diff --git a/generic-pc/video.cpp b/generic-pc/video.cpp
+index 13371a7..cdd66ee 100644
+--- a/generic-pc/video.cpp
++++ b/generic-pc/video.cpp
+@@ -506,6 +506,25 @@ VDec::SWFramebuffer *VDec::getDecBuf(void)
+ 	return p;
+ }
+ 
++VDec::SWFramebuffer *VDec::getDecBufLocked(void)
++{
++	buf_m.lock();
++	if (buf_num == 0) {
++		buf_m.unlock();
++		return NULL;
++	}
++	SWFramebuffer *p = &buffers[buf_out];
++	buf_out++;
++	buf_num--;
++	buf_out %= VDEC_MAXBUFS;
++	return p; /* buf_m remains locked until releaseDecBuf() */
++}
++
++void VDec::releaseDecBuf(void)
++{
++	buf_m.unlock();
++}
++
+ static int my_read(void *, uint8_t *buf, int buf_size)
+ {
+ 	int tmp = 0;
+diff --git a/generic-pc/glfb.cpp b/generic-pc/glfb.cpp
+index d993a3b..284d6ee 100644
+--- a/generic-pc/glfb.cpp
++++ b/generic-pc/glfb.cpp
+@@ -564,7 +564,7 @@ void GLFbPC::bltDisplayBuffer()
+ 	if (!vdec) /* cannot start yet */
+ 		return;
+ 	static bool warn = true;
+-	VDec::SWFramebuffer *buf = vdec->getDecBuf();
++	VDec::SWFramebuffer *buf = vdec->getDecBufLocked();
+ 	if (!buf) {
+ 		if (warn)
+ 			lt_info("GLFB::%s did not get a buffer...\n", __func__);
+@@ -573,8 +573,10 @@ void GLFbPC::bltDisplayBuffer()
+ 	}
+ 	warn = true;
+ 	int w = buf->width(), h = buf->height();
+-	if (w == 0 || h == 0)
++	if (w == 0 || h == 0) {
++		vdec->releaseDecBuf();
+ 		return;
++	}
+ 
+ 	AVRational a = buf->AR();
+ 	if (a.den != 0 && a.num != 0 && av_cmp_q(a, _mVA)) {
+@@ -584,13 +586,19 @@ void GLFbPC::bltDisplayBuffer()
+ 		mVAchanged = true;
+ 	}
+ 
+-	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, mState.displaypbo);
+-	glBufferData(GL_PIXEL_UNPACK_BUFFER, buf->size(), &(*buf)[0], GL_STREAM_DRAW_ARB);
+-
+-	glBindTexture(GL_TEXTURE_2D, mState.displaytex);
+-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+-
++	/* Upload the decoded frame directly.  The old PBO path supplied a
++	 * zero offset to glTexImage2D after orphaning the buffer.  That is
++	 * legal in principle, but on the native Mesa/GLUT path it produced
++	 * corrupted 1080p textures (vertical stripes) while PAL happened to
++	 * look usable.  Keep the PBO allocated for the OSD path, but use the
++	 * frame's actual storage for the video texture until the upload path
++	 * has a verified row-stride-aware implementation. */
+ 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
++	glBindTexture(GL_TEXTURE_2D, mState.displaytex);
++	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
++	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE,
++			     &(*buf)[0]);
++	vdec->releaseDecBuf();
+ 
+ 	/* "rate control" mechanism starts here...
+ 	 * this implementation is pretty naive and not working too well, but
+diff --git a/generic-pc/clutterfb.cpp b/generic-pc/clutterfb.cpp
+index e23d943..a2973c0 100644
+--- a/generic-pc/clutterfb.cpp
++++ b/generic-pc/clutterfb.cpp
+@@ -438,7 +438,7 @@ void GLFbPC::bltDisplayBuffer()
+ 	if (!vdec) /* cannot start yet */
+ 		return;
+ 	static bool warn = true;
+-	VDec::SWFramebuffer *buf = vdec->getDecBuf();
++	VDec::SWFramebuffer *buf = vdec->getDecBufLocked();
+ 	if (!buf) {
+ 		if (warn)
+ 			lt_info("GLFB::%s did not get a buffer...\n", __func__);
+@@ -447,8 +447,10 @@ void GLFbPC::bltDisplayBuffer()
+ 	}
+ 	warn = true;
+ 	int w = buf->width(), h = buf->height();
+-	if (w == 0 || h == 0)
++	if (w == 0 || h == 0) {
++		vdec->releaseDecBuf();
+ 		return;
++	}
+ 
+ 	AVRational a = buf->AR();
+ 	if (a.den != 0 && a.num != 0 && av_cmp_q(a, _mVA)) {
+@@ -469,6 +471,7 @@ void GLFbPC::bltDisplayBuffer()
+ 	clutter_actor_set_content(vid_actor, fb);
+ 	g_object_unref(fb);
+ 	clutter_actor_show(vid_actor);
++	vdec->releaseDecBuf();
+ 
+ 	/* "rate control" mechanism starts here...
+ 	 * this implementation is pretty naive and not working too well, but
+

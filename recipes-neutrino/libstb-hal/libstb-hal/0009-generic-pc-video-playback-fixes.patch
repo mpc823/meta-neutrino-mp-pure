@@ -1,0 +1,83 @@
+diff --git a/generic-pc/video.cpp b/generic-pc/video.cpp
+index ffc0bcfbe2..13371a7dfd 100644
+--- a/generic-pc/video.cpp
++++ b/generic-pc/video.cpp
+@@ -195,6 +195,10 @@ int cVideo::Stop(bool b)
+ int VDec::Start()
+ {
+ 	lt_debug("%s running %d >\n", __func__, thread_running);
++	/* A live stream replaces the startup/still-picture frame. */
++	still_m.lock();
++	stillpicture = false;
++	still_m.unlock();
+ 	if (!thread_running && !HAL_nodec)
+ 		OpenThreads::Thread::start();
+ 	lt_debug("%s running %d <\n", __func__, thread_running);
+@@ -559,24 +563,45 @@ void VDec::run(void)
+ 	avfc = avformat_alloc_context();
+ 	avfc->pb = pIOCtx;
+ 	avfc->iformat = inp;
+-	avfc->probesize = 188*5;
++	/* Five TS packets are enough for some audio streams, but not for a
++	 * reliable video codec probe (notably H.264 sequence headers). */
++	avfc->probesize = 188 * 100;
++	avfc->max_analyze_duration = AV_TIME_BASE;
+ 
+ 	thread_running = true;
+ 	if (avformat_open_input(&avfc, NULL, inp, NULL) < 0) {
+ 		lt_info("%s: Could not open input\n", __func__);
+ 		goto out;
+ 	}
+-	while (avfc->nb_streams < 1)
+-	{
+-		lt_info("%s: nb_streams %d, should be 1 => retry\n", __func__, avfc->nb_streams);
+-		if (av_read_frame(avfc, &avpkt) < 0)
+-			lt_info("%s: av_read_frame < 0\n", __func__);
+-		av_packet_unref(&avpkt);
+-		if (! thread_running)
+-			goto out;
++	/* Probe the live MPEG-TS before selecting the codec.  Without stream-info
++	 * discovery FFmpeg can expose an unknown stream (codec_id NONE), so the
++	 * Generic-PC video path exits while audio continues to play. */
++	if (avformat_find_stream_info(avfc, NULL) < 0) {
++		lt_info("%s: Could not find live stream info\n", __func__);
++		goto out;
++	}
++	if (avfc->nb_streams < 1) {
++		lt_info("%s: no live video stream discovered\n", __func__);
++		goto out;
+ 	}
+ 
+ 	p = avfc->streams[0]->codecpar;
++	/* The DVB demux deliberately supplies only the selected video PID.  In
++	 * that mode FFmpeg cannot see PAT/PMT and leaves codec_id unset.  Zapit
++	 * already passed the elementary-stream type through SetStreamType(); use
++	 * that authoritative information to complete the codec parameters. */
++	switch (v_format) {
++	case VIDEO_FORMAT_MPEG2:
++		p->codec_type = AVMEDIA_TYPE_VIDEO;
++		p->codec_id = AV_CODEC_ID_MPEG2VIDEO;
++		break;
++	case VIDEO_FORMAT_MPEG4:
++		p->codec_type = AVMEDIA_TYPE_VIDEO;
++		p->codec_id = AV_CODEC_ID_H264;
++		break;
++	default:
++		break;
++	}
+ 	if (p->codec_type != AVMEDIA_TYPE_VIDEO)
+ 		lt_info("%s: no video codec? 0x%x\n", __func__, p->codec_type);
+ 
+@@ -670,7 +695,10 @@ void VDec::run(void)
+ 					buf_out %= VDEC_MAXBUFS;
+ 					buf_num--;
+ 				}
+-				dec_r = c->time_base.den/(c->time_base.num * c->ticks_per_frame);
++				if (c->time_base.num > 0 && c->ticks_per_frame > 0)
++					dec_r = c->time_base.den/(c->time_base.num * c->ticks_per_frame);
++				else
++					dec_r = 0;
+ 				buf_m.unlock();
+ 			}
+ 			lt_debug("%s: time_base: %d/%d, ticks: %d rate: %d pts 0x%" PRIx64 "\n", __func__,
+

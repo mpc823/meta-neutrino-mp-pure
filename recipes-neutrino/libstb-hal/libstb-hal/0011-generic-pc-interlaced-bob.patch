@@ -1,0 +1,40 @@
+diff --git a/generic-pc/video.cpp b/generic-pc/video.cpp
+index f03a2a2..a4fa709 100644
+--- a/generic-pc/video.cpp
++++ b/generic-pc/video.cpp
+@@ -80,6 +80,25 @@
+ 	{ -1,-1 }
+ };
+ 
++/* Generic-PC presents decoded frames as progressive OpenGL textures. DVB
++ * MPEG-2/H.264 services are often interlaced; weaving both fields directly
++ * produces horizontal combing on moving objects. Bob each field instead. */
++static void deinterlace_bob(uint8_t *pixels, int stride, int height, bool top_field_first)
++{
++	if (!pixels || stride <= 0 || height < 2)
++		return;
++	const int keep_field = top_field_first ? 0 : 1;
++	for (int y = 0; y < height; ++y) {
++		if ((y & 1) == keep_field)
++			continue;
++		int source = top_field_first ? y - 1 : y + 1;
++		if (source < 0 || source >= height || ((source & 1) != keep_field))
++			source = top_field_first ? y + 1 : y - 1;
++		if (source >= 0 && source < height)
++			memcpy(pixels + y * stride, pixels + source * stride, stride);
++	}
++}
++
+ cVideo::cVideo(int, void *, void *, unsigned int)
+ {
+ 	lt_debug("%s\n", __func__);
+@@ -661,6 +680,9 @@
+ 						c->width, c->height, 1);
+ 				sws_scale(convert, frame->data, frame->linesize, 0, c->height,
+ 						rgbframe->data, rgbframe->linesize);
++				if (frame->interlaced_frame)
++					deinterlace_bob(rgbframe->data[0], rgbframe->linesize[0], c->height,
++							frame->top_field_first);
+ 				if (dec_w != c->width || dec_h != c->height) {
+ 					lt_info("%s: pic changed %dx%d -> %dx%d\n", __func__,
+ 							dec_w, dec_h, c->width, c->height);

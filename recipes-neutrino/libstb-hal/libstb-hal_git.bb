@@ -24,6 +24,7 @@ DEPENDS = "\
 PROVIDES += "virtual/stb-hal-libs"
 
 DEPENDS:append:spark = "tdt-driver libass"
+DEPENDS:append:spark7162 = "tdt-driver libass"
 DEPENDS:append:raspberrypi = "virtual/egl"
 DEPENDS:append:raspberrypi2 = "virtual/egl"
 DEPENDS:append:tripledragon = "directfb triple-sdk"
@@ -31,6 +32,7 @@ DEPENDS:append:tripledragon = "directfb triple-sdk"
 RDEPENDS:${PN} = "ffmpeg"
 RDEPENDS:${PN}:append:hd51 = " gstreamer1.0-plugins-base gstreamer1.0-plugins-bad"
 RDEPENDS:${PN}-dev:append:spark = " tdt-driver-dev"
+RDEPENDS:${PN}-dev:append:spark7162 = " tdt-driver-dev"
 RDEPENDS:${PN}-dev:append:tripledragon = " triple-sdk-dev"
 
 SRCREV = "${LIBSTB_HAL_SRCREV}"
@@ -38,6 +40,7 @@ PV = "0.1+git${SRCPV}"
 
 # prepend, or it will end up in -bin package...
 PACKAGES:prepend:spark = "spark-fp "
+PACKAGES:prepend:spark7162 = "spark-fp "
 # libstb-hal-bin package for testing binaries etc.
 PACKAGES += "${PN}-bin"
 
@@ -57,10 +60,15 @@ SRC_URI = " \
 	file://0001-raspi-implement-get-video-system.patch \
 	file://0002-add-video-display-capabilities.patch \
 	file://0003-generic-pc-ffmpeg6-compat.patch \
+	file://0009-generic-pc-video-playback-fixes.patch \
+	file://0010-generic-pc-video-buffer-upload.patch \
+	file://0011-generic-pc-interlaced-bob.patch \
+	file://0012-azbox-video-start-stillpicture.patch \
 	file://0004-generic-hd51-boxmodel.patch \
+	file://0007-runtime-dvb-capability.patch \
 "
 
-SRC_URI:hd51 = "${LIBSTB_HAL_GIT};destsuffix=git file://COPYING.GPL file://0005-armbox-dvb-uapi-compat.patch file://0006-armbox-gstreamer-pkgconfig.patch"
+SRC_URI:hd51 = "${LIBSTB_HAL_GIT};destsuffix=git file://COPYING.GPL file://0005-armbox-dvb-uapi-compat.patch file://0006-armbox-gstreamer-pkgconfig.patch file://0008-runtime-dvb-capability-cst.patch"
 SRCREV:hd51 = "e93920680b66ddc356ebf8c97d86df660f167616"
 LIC_FILES_CHKSUM:hd51 = "file://${UNPACKDIR}/COPYING.GPL;md5=751419260aa954499f7abaabaa882bbe"
 S:hd51 = "${UNPACKDIR}/git${@''}"
@@ -72,6 +80,7 @@ inherit autotools-brokensep pkgconfig neutrino-architecture-check
 # CFLAGS:append = " -Wall -W -Wshadow -g -O2 -fno-strict-aliasing -rdynamic -DNEW_LIBCURL"
 
 CFLAGS_spark += "-funsigned-char"
+CFLAGS_spark7162 += "-funsigned-char"
 CPPFLAGS_tripledragon += "-I${STAGING_DIR_HOST}/usr/include/hardware"
 
 LDFLAGS = " -Wl,-rpath-link,${STAGING_DIR_HOST}/usr/lib -L${STAGING_DIR_HOST}/usr/lib"
@@ -83,11 +92,13 @@ EXTRA_OECONF += "\
 "
 
 EXTRA_OECONF:append:spark = "--with-boxtype=spark"
+EXTRA_OECONF:append:spark7162 = "--with-boxtype=spark"
 EXTRA_OECONF:append:raspberrypi = "--with-boxtype=generic --with-boxmodel=raspi"
 EXTRA_OECONF:append:raspberrypi2 = "--with-boxtype=generic --with-boxmodel=raspi"
 EXTRA_OECONF:append:raspberrypi = " --disable-clutter"
 EXTRA_OECONF:append:raspberrypi2 = " --disable-clutter"
 EXTRA_OECONF:append:tripledragon = "--with-boxtype=tripledragon"
+EXTRA_OECONF:append:azbox = "--with-boxtype=azbox"
 
 # cst-next selects the verified Broadcom ARM-box HAL.  Do not pull desktop
 # OpenGL, GLUT, GLEW or libao into this embedded target.
@@ -103,13 +114,18 @@ do_install:append() {
 }
 
 do_install:append:tripledragon() {
-	install -D -m 0644 ${WORKDIR}/blank_576.mpg ${D}/${datadir}/tuxbox/blank_576.mpg
-	install -D -m 0644 ${WORKDIR}/blank_480.mpg ${D}/${datadir}/tuxbox/blank_480.mpg
+	install -D -m 0644 ${UNPACKDIR}/blank_576.mpg ${D}/${datadir}/tuxbox/blank_576.mpg
+	install -D -m 0644 ${UNPACKDIR}/blank_480.mpg ${D}/${datadir}/tuxbox/blank_480.mpg
 }
 
 do_install:append:spark() {
 	install -D -m 0755 ${WORKDIR}/timer-wakeup.init ${D}/${sysconfdir}/init.d/timer-wakeup
 	# neutrino is 99, so we put this at 98.
+	update-rc.d -r ${D} timer-wakeup start 98 5 .
+}
+
+do_install:append:spark7162() {
+	install -D -m 0755 ${WORKDIR}/timer-wakeup.init ${D}/${sysconfdir}/init.d/timer-wakeup
 	update-rc.d -r ${D} timer-wakeup start 98 5 .
 }
 
